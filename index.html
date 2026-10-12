@@ -86,6 +86,7 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
         <li><b>Cuarto:</b> la ventana se abre sola, cerrala. Debajo de la cama (<kbd>S</kbd>) hay algo: alumbrale los ojos.</li>
         <li><b>Living:</b> si la tele se prende sola, apagala antes de que algo salga de la estática.</li>
         <li><b>Sótano:</b> ahí está el tablero. Si se corta la luz de la casa, bajá a subir la palanca. Más adelante se queman fusibles.</li>
+        <li><b>El Escondido:</b> a veces se apaga sola la luz de la habitación donde estás. Hay algo escondido. Prendé la linterna, buscalo y alumbralo antes de que se acabe el tiempo. Si te vas, te sigue.</li>
         <li><b>Desde la noche 2:</b> la canilla del baño, el teléfono de la cocina y la Sombra, que camina por la casa. Si te encuentra, alumbrala o escapá a otra habitación.</li>
         <li><b>Desde la noche 3:</b> el espejo del baño tiene que estar tapado. Nunca lo alumbres.</li>
         <li>Pilas, fusibles y páginas del diario están escondidos por toda la casa. Con la linterna se ve un brillo donde hay algo.</li>
@@ -245,7 +246,15 @@ const MIRROR = { x: 380, y: 110, w: 180, h: 215 };
 const LIT = { cuarto: .42, pasillo: .6, bano: .48, living: .55, cocina: .45, sotano: .965 };
 const LAMPS = { cuarto: [970, 330, 330, .55], pasillo: [640, 110, 460, .55], bano: [640, 40, 560, .5], living: [380, 160, 420, .45], cocina: [470, 40, 560, .5] };
 const SOMBRA_POS = { cuarto: { x: 715, y: 500, h: 330 }, pasillo: { x: 640, y: 450, h: 220 }, bano: { x: 250, y: 505, h: 330 }, living: { x: 605, y: 470, h: 290 }, cocina: { x: 1105, y: 505, h: 330 }, sotano: { x: 720, y: 570, h: 390 } };
-const ITEM_NAME = { pila: 'una pila', fusible: 'un fusible', pagina: 'una página' };
+const HIDE = {
+  cuarto: [{ x: 578, y: 300 }, { x: 480, y: 122 }, { x: 1075, y: 470 }, { x: 255, y: 470 }, { x: 840, y: 215 }],
+  pasillo: [{ x: 500, y: 420 }, { x: 900, y: 560 }, { x: 640, y: 330 }, { x: 200, y: 60 }, { x: 880, y: 300 }],
+  bano: [{ x: 745, y: 320 }, { x: 935, y: 300 }, { x: 600, y: 570 }, { x: 250, y: 110 }, { x: 470, y: 470 }],
+  living: [{ x: 500, y: 410 }, { x: 1050, y: 330 }, { x: 120, y: 470 }, { x: 740, y: 150 }, { x: 790, y: 470 }],
+  cocina: [{ x: 752, y: 300 }, { x: 960, y: 140 }, { x: 300, y: 560 }, { x: 930, y: 470 }, { x: 620, y: 270 }],
+  sotano: [{ x: 500, y: 220 }, { x: 1000, y: 440 }, { x: 150, y: 600 }, { x: 820, y: 160 }]
+};
+const ITEM_NAME ={ pila: 'una pila', fusible: 'un fusible', pagina: 'una página' };
 
 /* ---------------- audio ---------------- */
 let AC = null, master, noiseBuf, windGain, ambGain, waterGain, tvGain, humGain, POSV = 1;
@@ -309,6 +318,8 @@ const sfx = {
   rustle() { burst({ type: 'bandpass', freq: 900, q: .6, gain: .15, a: .08, d: .35 }); },
   static() { burst({ type: 'highpass', freq: 2000, q: .4, gain: .25, a: .01, d: .5 }); },
   ring() { [0, .45].forEach(w => { tone({ freq: 440, gain: .09, d: .35, when: w }); tone({ freq: 480, gain: .09, d: .35, when: w }); }); },
+  giggle() { for (let i = 0; i < 5; i++) tone({ freq: 950 - i * 70 + Math.random() * 40, type: 'triangle', gain: .07, d: .07, when: i * .11 }); },
+  breath() { burst({ type: 'bandpass', freq: 500, q: .8, gain: .12, a: .45, d: .7 }); },
   sting() { tone({ freq: 220, to: 110, type: 'sawtooth', gain: .12, a: .01, d: .9 }); tone({ freq: 233, to: 116, type: 'sawtooth', gain: .12, a: .01, d: .9 }); },
   bell() { [0, .9].forEach(w => { tone({ freq: 196, gain: .16, d: 1.8, when: w }); tone({ freq: 392, gain: .06, d: 1.4, when: w }); }); },
   chime() { [523, 659, 784, 1046].forEach((f, i) => tone({ freq: f, gain: .16, d: 1.4, when: i * .3 })); },
@@ -564,7 +575,7 @@ const STARS = Array.from({ length: 14 }, () => ({ x: Math.random(), y: Math.rand
 
 /* ---------------- story ---------------- */
 const NOTES = {
-  1: `<p>Steicy:</p><p>Me toca el turno de noche, vuelvo a las 6. Ya sabés las reglas de la casa:</p><ol><li>Si la ventana de tu cuarto se abre sola, cerrala. No mires afuera.</li><li>Revisá debajo de la cama con la linterna. Si ves ojos, alumbralos hasta que se vayan.</li><li>Si la tele del living se prende sola, apagala. No te quedes mirando la estática.</li><li>Si se corta la luz, el tablero está en el sótano. Se baja por la cocina.</li><li>Hay pilas escondidas por toda la casa. Nunca te quedes a oscuras.</li></ol><p>Ah: encontré hojas viejas de un diario en la casa. Si ves más, guardalas.</p><p class="sig">Te quiero. Mamá</p>`,
+  1: `<p>Steicy:</p><p>Me toca el turno de noche, vuelvo a las 6. Ya sabés las reglas de la casa:</p><ol><li>Si la ventana de tu cuarto se abre sola, cerrala. No mires afuera.</li><li>Revisá debajo de la cama con la linterna. Si ves ojos, alumbralos hasta que se vayan.</li><li>Si la tele del living se prende sola, apagala. No te quedes mirando la estática.</li><li>Si se corta la luz de toda la casa, el tablero está en el sótano. Se baja por la cocina.</li><li>Si se apaga sola la luz de UNA habitación, no es un corte: hay algo escondido ahí. Tenés un minuto para encontrarlo con la linterna. Si te vas, te sigue.</li><li>Hay pilas escondidas por toda la casa. Nunca te quedes a oscuras.</li></ol><p>Ah: encontré hojas viejas de un diario en la casa. Si ves más, guardalas.</p><p class="sig">Te quiero. Mamá</p>`,
   2: `<p>Steicy:</p><p>La canilla del baño se abre sola. Si la escuchás, cerrala, o se inunda y salta la luz.</p><p>Si suena el teléfono, podés atender. Si soy yo, te voy a ayudar. Si no soy yo, cortá.</p><p>Y una cosa más. Si ves una sombra alta caminando por la casa, alumbrala. No le gusta la luz. Si no tenés pila, andate a otra habitación.</p><p class="sig">Mamá</p>`,
   3: `<p>Steicy:</p><p>Tapé el espejo del baño con la toalla. Si se cae, volvé a taparlo. Y NUNCA lo alumbres con la linterna.</p><p>A veces se quema un fusible del tablero. Hay repuestos escondidos por ahí.</p><p>Encontré rasguños en el piso, abajo de tu cama. Seguro fue el gato. ...Nosotros no tenemos gato.</p><p class="sig">Mamá</p>`,
   4: `<p>Steicy:</p><p>Si escuchás que alguien te llama por tu nombre, no contestes. Yo nunca te llamaría de noche.</p><p>Y no entiendo cómo, pero ahora la tele se prende aunque no haya luz.</p><p class="sig">Mamá</p>`,
@@ -593,6 +604,7 @@ const CAUSES = {
   tele: 'Algo salió de la tele. Si escuchás la estática, andá al living y apagala.',
   espejo: 'La chica del espejo salió del baño. Mantené el espejo tapado con la toalla y nunca lo alumbres.',
   sombra: 'La Sombra te atrapó. Cuando aparece, alumbrala con la linterna hasta que se vaya, o escapá a otra habitación.',
+  escondido: 'El Escondido te encontró primero. Cuando la luz de una habitación se apaga sola, prendé la linterna y buscalo antes de que se acabe el tiempo.',
   oscuridad: 'Steicy se quedó a oscuras. Juntá pilas de repuesto y no dejes que la linterna se apague en un lugar sin luz.'
 };
 const MAMA_LORE = [
@@ -600,7 +612,7 @@ const MAMA_LORE = [
   'Mamá: "La señora de al lado dice que antes vivía una nena acá. Abril. Nunca la encontraron."',
   'Mamá: "No le tengas miedo a la oscuridad. Tenele miedo a lo que hay adentro."'
 ];
-const INTRO = { sotano: 1, ventana: 1, cama: 1, tele: 1, luz: 1, under: 1, pila: 1, mapa: 1, canilla: 2, telefono: 2, sombra: 2, espejo: 3, fusible: 3 };
+const INTRO = { escondido: 1, sotano: 1, ventana: 1, cama: 1, tele: 1, luz: 1, under: 1, pila: 1, mapa: 1, canilla: 2, telefono: 2, sombra: 2, espejo: 3, fusible: 3 };
 
 /* ---------------- game state ---------------- */
 let G = null, mode = 'menu', T = 0, pointer = null, sustosOn = store.get('steicy_sustos', true);
@@ -621,6 +633,7 @@ function newNight(n) {
     espejo: { s: 0, covered: true, coverT: rand(30, 50), warned: false },
     phone: { ring: 0, next: rand(35, 55), ringSnd: 0 },
     sombra: { room: 'sotano', moveT: 30, enc: 0, flee: 0, cool: 0 },
+    hidden: { active: false, pending: 0, room: null, spot: null, t: 0, found: 0, next: rand(60, 80) },
     dark: { t: 0 }, items: {}, underPos: { x: 640, y: 600 },
     spawnT: rand(14, 22), ambientT: rand(8, 14), heartT: 0,
     action: null, toasts: [], hintsShown: {},
@@ -635,7 +648,8 @@ function newNight(n) {
       aguaWait: [Math.max(15, 40 - 4 * k), Math.max(25, 70 - 6 * k)], aguaRate: 1 / (40 - 4 * k),
       espejoRate: .012 * (1 + .3 * Math.max(0, k - 2)),
       sombraMove: Math.max(7, 17 - 2 * k), sombraLimit: Math.max(3.5, 6.5 - .6 * k), sombraChase: .45 + .08 * k,
-      drain: .9 + .13 * k
+      drain: .9 + .13 * k,
+      hidEvery: [Math.max(30, 55 - 5 * k), Math.max(50, 85 - 7 * k)], hidLimit: Math.max(25, 60 - 7 * k)
     }
   };
 }
@@ -650,9 +664,10 @@ function placeItem(type) {
 }
 function spotInfo(key) { const [r, s] = key.split('.'); return s === 'under' ? { room: r, name: 'debajo de tu cama' } : { room: r, name: SPOTS[r][s].name }; }
 function toast(text, life = 3) { if (!G) return; G.toasts.push({ text, life }); if (G.toasts.length > 3) G.toasts.shift(); }
-function hint(key, text) { if (INTRO[key] === G.n && !G.hintsShown[key]) { G.hintsShown[key] = true; toast(text, 6); } }
+function hint(key, text) { if (INTRO[key] === G.n && !G.hintsShown[key]) { G.hintsShown[key] = true; toast(text, 6); return true; } return false; }
 const flashLit = () => G.flash.on && G.flash.bat > 0;
-const roomDark = r => r === 'sotano' || !G.power.on;
+const hiddenIn = r => G.hidden.active && G.hidden.room === r;
+const roomDark = r => r === 'sotano' || !G.power.on || hiddenIn(r);
 const telePowered = () => G.power.on || G.f.teleSinLuz;
 function monsterPos() { const d = clamp(G.bed.s / 4, 0, 1); return { x: 640 + G.bed.mx * (1 - d * .6), y: 330 + d * 230, r: 22 + d * 150 }; }
 
@@ -669,7 +684,9 @@ function travelTo(room) {
 }
 function arrive() {
   const g = G;
-  if (g.room === 'sotano') hint('sotano','El sótano no tiene luz. Usá la linterna.');
+  if (g.room === 'sotano') hint('sotano', 'El sótano no tiene luz. Usá la linterna.');
+  const Hd = g.hidden;
+  if ((Hd.active || Hd.pending > 0) && Hd.room !== g.room) { Hd.room = g.room; Hd.spot = pick(HIDE[g.room]); Hd.found = 0; if (Hd.active) { at(g.room, sfx.giggle); toast('Te siguió...', 2.5); } }
   if (g.room === 'bano' && g.f.espejo && !g.espejo.covered && g.espejo.s > .15) toast('La chica del espejo te mira...', 3);
 }
 function doHotspot(h) {
@@ -872,6 +889,31 @@ function update(dt) {
 
   if (g.f.sombra && updateSombra(dt)) return;
 
+  const Hd = g.hidden;
+  if (Hd.pending > 0) {
+    Hd.pending -= dt; if (Math.random() < dt * 8) sfx.buzz();
+    if (Hd.pending <= 0) {
+      Hd.active = true; Hd.t = 0; Hd.found = 0; sfx.clunk();
+      if (!hint('escondido', 'Se apagó la luz de esta habitación sola... Hay algo escondido acá. Prendé la linterna (F) y buscalo.')) toast('Se apagó la luz... hay algo escondido acá.', 3);
+    }
+  } else if (!Hd.active) {
+    if (P.on && g.room !== 'sotano' && !(g.action && g.action.travel)) {
+      Hd.next -= dt;
+      if (Hd.next <= 0) { Hd.room = g.room; Hd.spot = pick(HIDE[g.room]); Hd.pending = 1.2; }
+    }
+  } else {
+    Hd.t += dt;
+    if (g.room === Hd.room && g.view === 'room' && flashLit() && dist(g.aim, Hd.spot) < 75) {
+      Hd.found += dt;
+      if (Hd.found >= 1.2) { Hd.active = false; Hd.next = rand(...d.hidEvery); sfx.hiss(); toast('¡Lo encontraste! Se fue y volvió la luz.', 3); }
+    }
+    if (Hd.active) {
+      if (g.room === Hd.room && Math.random() < dt * .25) sfx.breath();
+      if (d.hidLimit - Hd.t < 12 && Math.random() < dt * .4) at(Hd.room, sfx.giggle);
+      if (Hd.t >= d.hidLimit) return die('escondido');
+    }
+  }
+
   if (roomDark(g.room) && F.bat <= 0) { g.dark.t += dt; if (g.dark.t >= 6) return die('oscuridad'); }
   else g.dark.t = Math.max(0, g.dark.t - dt * 2);
 
@@ -891,7 +933,8 @@ function update(dt) {
     B.s > 2.5 ? (B.s - 2.5) / 1.5 : 0, Tv.on && Tv.s > .6 ? (Tv.s - .6) * 2 : 0,
     g.f.espejo && g.espejo.s > .6 ? (g.espejo.s - .6) * 2 : 0,
     g.f.sombra ? (S.room === g.room ? 1 : DIST[S.room][g.room] === 1 ? .35 : 0) : 0,
-    g.dark.t > 0 ? 1 : 0);
+    g.dark.t > 0 ? 1 : 0,
+    g.hidden.active ? .3 + .7 * g.hidden.t / d.hidLimit : 0);
   g.heartT -= dt;
   if (danger > .15 && g.heartT <= 0) { sfx.heart(danger); g.heartT = 1.1 - .6 * danger; }
   setLoop(windGain, (.015 + Wn.o * .22) * pf('cuarto'));
@@ -1061,8 +1104,22 @@ function drawBed(t) {
     }
   }
 }
-function lampFlicker() { return G.power.flicker > 0 && Math.random() < .45; }
-function powered() { return G.power.on && !lampFlicker(); }
+function lampFlicker() { const Hd = G.hidden; return (G.power.flicker > 0 || (Hd.pending > 0 && Hd.room === G.room)) && Math.random() < .45; }
+function powered() { return G.power.on && !hiddenIn(G.room) && !lampFlicker(); }
+function drawPeek(x, y, r, a = 1) {
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = '#08060a'; ell(ctx, x, y - r * .2, r * 1.15, r * 1.2); ctx.fill();
+  const gr = ctx.createRadialGradient(x, y - r * .2, r * .1, x, y, r); gr.addColorStop(0, '#e6e2d6'); gr.addColorStop(1, '#9d9a90');
+  ctx.fillStyle = gr; ell(ctx, x, y, r * .85, r); ctx.fill();
+  ctx.fillStyle = '#000'; ell(ctx, x - r * .32, y - r * .15, r * .2, r * .28); ctx.fill(); ell(ctx, x + r * .32, y - r * .15, r * .2, r * .28); ctx.fill();
+  ctx.fillStyle = '#fff'; ell(ctx, x - r * .3, y - r * .12, r * .04, r * .04); ctx.fill(); ell(ctx, x + r * .34, y - r * .12, r * .04, r * .04); ctx.fill();
+  ctx.strokeStyle = '#1a0a0a'; ctx.lineWidth = Math.max(1.5, r * .08); ctx.beginPath(); ctx.arc(x, y + r * .1, r * .55, Math.PI * .15, Math.PI * .85); ctx.stroke();
+  ctx.lineWidth = Math.max(1, r * .03);
+  for (let i = -3; i <= 3; i++) { const tx = x + i * r * .12; ctx.beginPath(); ctx.moveTo(tx, y + r * .52); ctx.lineTo(tx, y + r * .62); ctx.stroke(); }
+  ctx.fillStyle = '#cfcbbf';
+  for (let i = 0; i < 4; i++) { rrect(ctx, x - r * 1.35, y - r * .55 + i * r * .28, r * .5, r * .16, r * .08); ctx.fill(); }
+  ctx.restore();
+}
 const DRAW = {
   cuarto(t) {
     const g = G;
@@ -1154,7 +1211,7 @@ function drawDarkness() {
   dctx.globalCompositeOperation = 'source-over'; dctx.clearRect(0, 0, W, H);
   let a;
   if (g.view === 'under') a = g.power.on ? .9 : .975;
-  else { a = g.power.on ? LIT[r] : .965; if (g.power.on && r !== 'sotano' && lampFlicker()) a = .95; }
+  else { a = roomDark(r) ? .965 : LIT[r]; if (!roomDark(r) && lampFlicker()) a = .95; }
   dctx.fillStyle = `rgba(4,2,8,${a})`; dctx.fillRect(0, 0, W, H);
   dctx.globalCompositeOperation = 'destination-out';
   if (g.view === 'room') {
@@ -1238,6 +1295,13 @@ function drawAfterDark(t) {
     ctx.save(); ctx.globalAlpha = p; pill(`¡LA SOMBRA ESTÁ ACÁ! Alumbrala o escapá (${left.toFixed(1)})`, 640, 330, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore();
     ctx.fillStyle = 'rgba(8,5,12,.75)'; ctx.fillRect(540, 352, 200, 8); ctx.fillStyle = '#e9e4c9'; ctx.fillRect(540, 352, 200 * clamp(g.sombra.flee / 1.1, 0, 1), 8);
   }
+  if (g.hidden.active) {
+    const left = Math.max(0, g.d.hidLimit - g.hidden.t), urgent = left < 12;
+    ctx.save(); ctx.globalAlpha = urgent ? p : .9;
+    pill(`HAY ALGO ESCONDIDO EN ${ROOMS[g.hidden.room].short.toUpperCase()}. Buscalo con la linterna: ${Math.ceil(left)} s`, 640, 470, 20, '#ffd6dc', urgent ? 'rgba(120,10,25,.85)' : 'rgba(8,5,12,.8)');
+    ctx.restore();
+    if (g.hidden.found > 0) { ctx.fillStyle = 'rgba(8,5,12,.75)'; ctx.fillRect(540, 490, 200, 8); ctx.fillStyle = '#e9e4c9'; ctx.fillRect(540, 490, 200 * clamp(g.hidden.found / 1.2, 0, 1), 8); }
+  }
   if (g.dark.t > 0) { ctx.save(); ctx.globalAlpha = p; pill('¡ESTÁS A OSCURAS! Cambiá la pila o andá a un lugar con luz', 640, 400, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore(); }
 }
 function hudButtons() {
@@ -1287,6 +1351,7 @@ function drawJumpscare(t) {
   const alpha = sustosOn ? 1 : Math.min(1, k);
   ctx.save(); ctx.translate(rand(-sh, sh), rand(-sh, sh));
   if (c === 'ventana' || c === 'tele' || c === 'espejo') drawGhost(640, 400, 300 * grow, alpha, true);
+  else if (c === 'escondido') drawPeek(640, 400, 230 * grow, alpha);
   else if (c === 'cama') { ctx.globalAlpha = alpha; drawMonsterBody(640, 400, 280 * grow, 4, t); ctx.globalAlpha = 1; drawEyes(640, 400, 280 * grow, alpha, t); }
   else {
     const R = 280 * grow; drawEyes(640, 380, R, alpha, t, '#ffffff');
@@ -1307,6 +1372,7 @@ function render(t) {
   } else {
     ctx.drawImage(BG[g.room], 0, 0, W, H);
     DRAW[g.room](t);
+    if (hiddenIn(g.room)) drawPeek(g.hidden.spot.x, g.hidden.spot.y, 30);
     if (g.f.sombra && g.sombra.room === g.room) { const sp = SOMBRA_POS[g.room]; drawSombra(sp.x, sp.y, sp.h, t, clamp(g.sombra.enc * 2, 0, 1)); }
     if (g.room === 'cuarto') DRAW.cuartoFront(t);
   }
@@ -1411,6 +1477,7 @@ function frame(now) {
   else if (mode === 'jumpscare') { G.jsT += dt; if (G.jsT >= 1.6) { mode = 'over'; $('overCause').textContent = CAUSES[G.cause]; show('over'); setLoop(ambGain, .25); } }
   render(T);
 }
+if (/[?&]debug\b/.test(location.search)) window.steicyDebug = () => G;
 G = demoState(); renderMenu(); show('menu');
 requestAnimationFrame(frame);
 })();
