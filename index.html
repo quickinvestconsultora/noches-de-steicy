@@ -61,6 +61,26 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
 .paper .sig { text-align: right; margin-top: 8px; }
 .note-wrap { display: grid; gap: 22px; justify-items: center; }
 .bigclock { font-family: var(--f-clock); font-size: clamp(72px, 14vw, 120px); line-height: .9; color: var(--moon); text-shadow: 0 0 30px rgba(233, 228, 201, .35); }
+.panel.wide { max-width: 880px; }
+h3 { font-family: var(--f-body); font-weight: 400; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--mist); margin: 0 0 10px; }
+section { display: grid; gap: 4px; }
+.ach { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px 18px; }
+.ach li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: 14px; line-height: 1.35; color: var(--mist); }
+.ach li .star { color: #e3c25a; font-size: 18px; line-height: 1; }
+.ach li.off .star { color: rgba(154, 144, 176, .45); }
+.ach b { display: block; color: var(--hud); font-weight: 400; }
+.ach li.off b { color: var(--mist); }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.card { border: 1px solid rgba(233, 228, 201, .18); padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card canvas { width: 100%; max-width: 100%; aspect-ratio: 1; background: #050307; display: block; }
+.card b { font-weight: 400; color: var(--moon); }
+.card p { font-size: 13px; line-height: 1.4; color: var(--mist); }
+.card button { padding: 8px 10px; font-size: 12px; justify-self: start; }
+.sliders { display: grid; gap: 10px; }
+.sl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) 34px; gap: 12px; align-items: center; font-size: 14px; }
+.sl input { width: 100%; accent-color: var(--blood); }
+.sl output { font-family: var(--f-clock); font-size: 22px; text-align: right; }
+.endtext { display: grid; gap: 12px; font-size: 17px; line-height: 1.55; max-width: 52ch; }
 #rotate { display: none; }
 @media (orientation: portrait) and (max-width: 760px) {
   #rotate { display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--blood); color: #fff; text-align: center; font-size: 14px; }
@@ -77,6 +97,7 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
     <h1>Las Noches de Steicy</h1>
     <p class="lede">Steicy está sola en casa. Mamá vuelve a las 6 de la mañana. Hasta entonces, la casa no duerme.</p>
     <div class="nights" id="nights"></div>
+    <div class="row"><button id="extrasBtn">Extras</button><button id="customBtn" hidden>Noche personalizada</button></div>
     <label class="toggle" for="sustos"><input type="checkbox" id="sustos" checked> Sustos fuertes (jumpscare con grito)</label>
     <details>
       <summary>Cómo se juega</summary>
@@ -88,7 +109,9 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
         <li><b>Sótano:</b> ahí está el tablero. Si se corta la luz de la casa, bajá a subir la palanca. Más adelante se queman fusibles.</li>
         <li><b>El Escondido:</b> a veces se apaga sola la luz de la habitación donde estás. Hay algo escondido. Prendé la linterna, buscalo y alumbralo antes de que se acabe el tiempo. Si te vas, te sigue.</li>
         <li><b>Desde la noche 2:</b> la canilla del baño, el teléfono de la cocina y la Sombra, que camina por la casa. Si te encuentra, alumbrala o escapá a otra habitación.</li>
-        <li><b>Desde la noche 3:</b> el espejo del baño tiene que estar tapado. Nunca lo alumbres.</li>
+        <li><b>Monitor de bebé</b> (<kbd>C</kbd>): muestra las otras habitaciones sin ir. Tocá una habitación del mapa para cambiar de cámara. Gasta pila.</li>
+        <li><b>Desde la noche 3:</b> el espejo del baño tiene que estar tapado. Nunca lo alumbres. Y la Muñeca: solo avanza cuando nadie la mira. Vigilala con el monitor; si llega a tu habitación, no le saques la vista de encima o guardala.</li>
+        <li><b>Desde la noche 4:</b> el ropero de tu cuarto se abre de a poco. Cerralo antes de que salga algo.</li>
         <li>Pilas, fusibles y páginas del diario están escondidos por toda la casa. Con la linterna se ve un brillo donde hay algo.</li>
       </ul>
     </details>
@@ -127,7 +150,7 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
     <div class="bigclock">6:00 AM</div>
     <h2 id="winTitle"></h2>
     <p class="lede" id="winText"></p>
-    <div class="row"><button class="primary" id="next">Siguiente noche</button><button id="toMenu2">Menú</button></div>
+    <div class="row"><button class="primary" id="next">Siguiente noche</button><button id="memory" hidden>Ver recuerdo</button><button id="toMenu2">Menú</button></div>
   </div>
 </div>
 
@@ -136,6 +159,45 @@ kbd { font-family: var(--f-clock); font-size: 18px; border: 1px solid rgba(233, 
     <h2>Pausa</h2>
     <p class="lede">La casa espera. No se va a ningún lado.</p>
     <div class="row"><button class="primary" id="resume">Seguir</button><button id="toMenu3">Abandonar la noche</button></div>
+  </div>
+</div>
+
+<div class="ov" id="extras" hidden>
+  <div class="panel wide">
+    <h2>Extras</h2>
+    <section><h3 id="starsTitle">Estrellas</h3><ul class="ach" id="achList"></ul></section>
+    <section><h3>Monstruos</h3><div class="gallery" id="gallery"></div></section>
+    <section><h3>Recuerdos de Abril</h3><p class="fine">Se destraban encontrando las páginas del diario.</p><div class="row" id="memList"></div></section>
+    <div class="row"><button class="primary" id="extrasBack">Volver</button></div>
+  </div>
+</div>
+
+<div class="ov" id="custom" hidden>
+  <div class="panel">
+    <h2>Noche personalizada</h2>
+    <p class="lede">Elegí qué tan fuerte viene cada amenaza. En 0 no aparece. Cuanto más alto el total, más puntos.</p>
+    <div class="sliders" id="sliders"></div>
+    <div class="row"><button id="preset0">Todo en 0</button><button id="preset10">Todo en 10</button><button id="preset20">Todo en 20</button></div>
+    <p class="lede"><b id="customScore">Puntaje: 0</b> <span class="fine" id="customBest"></span></p>
+    <div class="row"><button class="primary" id="customGo">Empezar</button><button id="customBack">Volver</button></div>
+  </div>
+</div>
+
+<div class="ov" id="ending" hidden>
+  <div class="panel">
+    <p class="kicker" id="endKicker">Final</p>
+    <h2 id="endTitle"></h2>
+    <div class="endtext" id="endText"></div>
+    <div class="row"><button class="primary" id="endGo">Seguir</button></div>
+  </div>
+</div>
+
+<div class="ov" id="choice" hidden>
+  <div class="panel">
+    <p class="kicker">El teléfono</p>
+    <h2>"Steicy... ¿querés jugar conmigo?"</h2>
+    <p class="lede">La voz suena igual a la tuya.</p>
+    <div class="row"><button class="primary" id="choiceCut">Cortar</button><button id="choiceYes">Decir que sí</button></div>
   </div>
 </div>
 
@@ -157,7 +219,9 @@ const store = {
 };
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const cv = $('cv'), ctx = cv.getContext('2d');
+const cv = $('cv');
+let ctx = cv.getContext('2d');
+function withCtx(c, fn) { const prev = ctx; ctx = c; try { fn(); } finally { ctx = prev; } }
 const dk = document.createElement('canvas'), dctx = dk.getContext('2d');
 let scale = 1, dpr = 1;
 function resize() {
@@ -254,7 +318,51 @@ const HIDE = {
   cocina: [{ x: 752, y: 300 }, { x: 960, y: 140 }, { x: 300, y: 560 }, { x: 930, y: 470 }, { x: 620, y: 270 }],
   sotano: [{ x: 500, y: 220 }, { x: 1000, y: 440 }, { x: 150, y: 600 }, { x: 820, y: 160 }]
 };
-const ITEM_NAME ={ pila: 'una pila', fusible: 'un fusible', pagina: 'una página' };
+const THREATS = [
+  { id: 'ventana', name: 'La ventana', from: 1 },
+  { id: 'cama', name: 'Debajo de la cama', from: 1 },
+  { id: 'tele', name: 'La tele', from: 1 },
+  { id: 'apagon', name: 'Cortes de luz', from: 1 },
+  { id: 'escondido', name: 'El Escondido', from: 1 },
+  { id: 'canilla', name: 'La canilla', from: 2 },
+  { id: 'telefono', name: 'El teléfono', from: 2 },
+  { id: 'sombra', name: 'La Sombra', from: 2 },
+  { id: 'espejo', name: 'La chica del espejo', from: 3 },
+  { id: 'muneca', name: 'La Muñeca', from: 3 },
+  { id: 'ropero', name: 'El ropero', from: 4 }
+];
+const MONSTERS = [
+  { id: 'ventana', from: 1, name: 'El fantasma de la ventana', desc: 'Se asoma cuando la ventana del cuarto queda abierta. Nadie sabe qué está mirando.', tip: 'Cerrá la ventana apenas escuches el crujido.' },
+  { id: 'cama', from: 1, name: 'El de abajo de la cama', desc: 'Rasca el piso de madera. Cuando está por salir, se le ven los dedos sobre la frazada.', tip: 'Mirá abajo seguido y alumbrale los ojos.' },
+  { id: 'tele', from: 1, name: 'La de la tele', desc: 'Vive en la estática. Cada segundo que la tele queda prendida está más cerca de salir.', tip: 'Si escuchás estática, apagá la tele del living.' },
+  { id: 'escondido', from: 1, name: 'El Escondido', desc: 'Apaga la luz de la habitación donde estás y se esconde. Le encanta que lo busquen.', tip: 'Alumbralo con la linterna antes de que se acabe el tiempo.' },
+  { id: 'sombra', from: 2, name: 'La Sombra', desc: 'Camina por la casa buscándote. Odia la luz.', tip: 'Alumbrala hasta que se vaya, o escapá a otra habitación.' },
+  { id: 'espejo', from: 3, name: 'La chica del espejo', desc: 'Se parece mucho a Abril. No parpadea nunca.', tip: 'Mantené el espejo tapado. Jamás la alumbres.' },
+  { id: 'muneca', from: 3, name: 'La Muñeca', desc: 'Era de Abril. Solo se mueve cuando nadie la está mirando.', tip: 'Vigilala con el monitor. Si llega a tu habitación, guardala.' },
+  { id: 'ropero', from: 4, name: 'El del ropero', desc: 'Abre las puertas del ropero de a poquito, sin hacer casi ruido.', tip: 'Si el ropero está entreabierto, cerralo.' }
+];
+const ACH = [
+  ['noche1', 'Primera noche', 'Sobreviví la noche 1.'],
+  ['cinco', 'Sobreviviente', 'Sobreviví las cinco noches.'],
+  ['pesadilla', 'Pesadilla', 'Sobreviví la Pesadilla.'],
+  ['ahorro', 'Ahorradora', 'Ganá una noche sin cambiar ninguna pila.'],
+  ['ciega', 'Sin mirar', 'Ganá la noche 3 o una más difícil sin abrir el monitor.'],
+  ['detective', 'Detective', 'Encontrá las 6 páginas del diario.'],
+  ['cazadora', 'Cazadora', 'Encontrá al Escondido 10 veces.'],
+  ['verdad', 'La verdad', 'Mirá el final verdadero.'],
+  ['secreto', 'Del otro lado', 'Encontrá el final secreto.'],
+  ['valiente', 'Valiente', 'Ganá una noche personalizada con 100 puntos o más.']
+];
+const ENDINGS = {
+  verdadero: { kicker: 'Final verdadero', title: 'Abril', text: ['A las 6 en punto, Steicy baja al sótano con las cinco páginas del diario.', 'Detrás del estante encuentra una caja de lata. Adentro hay una foto: una nena de su edad, en esta misma casa, en 1987.', 'Atrás de la foto dice, con letra de nena: "Gracias por leerme. Ya puedo dormir."', 'Esa mañana, por primera vez, la ventana del cuarto amanece cerrada.'] },
+  normal: { kicker: 'Final', title: 'La mañana', text: ['Mamá llega a las 6 y Steicy por fin se duerme.', 'Pero en algún lugar de la casa quedaron páginas sin leer. Y alguien que todavía espera que la encuentren.', 'Pista: encontrá las páginas del diario de las noches 1 a 5 para ver el final verdadero.'] },
+  secreto: { kicker: 'Final secreto', title: 'Del otro lado', text: ['"Steicy... ¿querés jugar conmigo?"', 'Steicy dice que sí.', 'A las 6, mamá abre la puerta del cuarto. La cama está vacía y tendida.', 'En el espejo del baño, dos nenas la saludan.'] }
+};
+const DOLL_POS = { cuarto: { x: 860, y: 540 }, pasillo: { x: 640, y: 455 }, bano: { x: 700, y: 560 }, living: { x: 1000, y: 560 }, cocina: { x: 700, y: 560 }, sotano: { x: 620, y: 570 } };
+function dollPos(r, st) { const b = DOLL_POS[r], k = Math.min(st, 2) / 2; return { x: b.x + (640 - b.x) * k * .8, y: b.y + (690 - b.y) * k }; }
+const dollScale = st => 1 + Math.min(st, 2) * .5;
+const CAM_NUM = { cuarto: '01', pasillo: '02', bano: '03', living: '04', cocina: '05', sotano: '06' };
+const ITEM_NAME = { pila: 'una pila', fusible: 'un fusible', pagina: 'una página' };
 
 /* ---------------- audio ---------------- */
 let AC = null, master, noiseBuf, windGain, ambGain, waterGain, tvGain, humGain, POSV = 1;
@@ -318,6 +426,13 @@ const sfx = {
   rustle() { burst({ type: 'bandpass', freq: 900, q: .6, gain: .15, a: .08, d: .35 }); },
   static() { burst({ type: 'highpass', freq: 2000, q: .4, gain: .25, a: .01, d: .5 }); },
   ring() { [0, .45].forEach(w => { tone({ freq: 440, gain: .09, d: .35, when: w }); tone({ freq: 480, gain: .09, d: .35, when: w }); }); },
+  groan() {
+    if (!AC) return; const t = AC.currentTime;
+    const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(62, t); o.frequency.linearRampToValueAtTime(44, t + 1.3);
+    const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 320;
+    const g = AC.createGain(); env(g, t, .3, .16 * POSV, 1.1); o.connect(f).connect(g).connect(master); o.start(t); o.stop(t + 1.5);
+  },
+  dollStep() { tone({ freq: 1500, type: 'triangle', gain: .08, d: .05 }); tone({ freq: 1900, type: 'triangle', gain: .06, d: .08, when: .06 }); },
   giggle() { for (let i = 0; i < 5; i++) tone({ freq: 950 - i * 70 + Math.random() * 40, type: 'triangle', gain: .07, d: .07, when: i * .11 }); },
   breath() { burst({ type: 'bandpass', freq: 500, q: .8, gain: .12, a: .45, d: .7 }); },
   sting() { tone({ freq: 220, to: 110, type: 'sawtooth', gain: .12, a: .01, d: .9 }); tone({ freq: 233, to: 116, type: 'sawtooth', gain: .12, a: .01, d: .9 }); },
@@ -575,10 +690,10 @@ const STARS = Array.from({ length: 14 }, () => ({ x: Math.random(), y: Math.rand
 
 /* ---------------- story ---------------- */
 const NOTES = {
-  1: `<p>Steicy:</p><p>Me toca el turno de noche, vuelvo a las 6. Ya sabés las reglas de la casa:</p><ol><li>Si la ventana de tu cuarto se abre sola, cerrala. No mires afuera.</li><li>Revisá debajo de la cama con la linterna. Si ves ojos, alumbralos hasta que se vayan.</li><li>Si la tele del living se prende sola, apagala. No te quedes mirando la estática.</li><li>Si se corta la luz de toda la casa, el tablero está en el sótano. Se baja por la cocina.</li><li>Si se apaga sola la luz de UNA habitación, no es un corte: hay algo escondido ahí. Tenés un minuto para encontrarlo con la linterna. Si te vas, te sigue.</li><li>Hay pilas escondidas por toda la casa. Nunca te quedes a oscuras.</li></ol><p>Ah: encontré hojas viejas de un diario en la casa. Si ves más, guardalas.</p><p class="sig">Te quiero. Mamá</p>`,
+  1: `<p>Steicy:</p><p>Me toca el turno de noche, vuelvo a las 6. Ya sabés las reglas de la casa:</p><ol><li>Si la ventana de tu cuarto se abre sola, cerrala. No mires afuera.</li><li>Revisá debajo de la cama con la linterna. Si ves ojos, alumbralos hasta que se vayan.</li><li>Si la tele del living se prende sola, apagala. No te quedes mirando la estática.</li><li>Si se corta la luz de toda la casa, el tablero está en el sótano. Se baja por la cocina.</li><li>Si se apaga sola la luz de UNA habitación, no es un corte: hay algo escondido ahí. Tenés un minuto para encontrarlo con la linterna. Si te vas, te sigue.</li><li>Hay pilas escondidas por toda la casa. Nunca te quedes a oscuras.</li><li>Te dejé el monitor de bebé viejo (C): muestra las otras habitaciones sin que tengas que ir. Gasta pila.</li></ol><p>Ah: encontré hojas viejas de un diario en la casa. Si ves más, guardalas.</p><p class="sig">Te quiero. Mamá</p>`,
   2: `<p>Steicy:</p><p>La canilla del baño se abre sola. Si la escuchás, cerrala, o se inunda y salta la luz.</p><p>Si suena el teléfono, podés atender. Si soy yo, te voy a ayudar. Si no soy yo, cortá.</p><p>Y una cosa más. Si ves una sombra alta caminando por la casa, alumbrala. No le gusta la luz. Si no tenés pila, andate a otra habitación.</p><p class="sig">Mamá</p>`,
-  3: `<p>Steicy:</p><p>Tapé el espejo del baño con la toalla. Si se cae, volvé a taparlo. Y NUNCA lo alumbres con la linterna.</p><p>A veces se quema un fusible del tablero. Hay repuestos escondidos por ahí.</p><p>Encontré rasguños en el piso, abajo de tu cama. Seguro fue el gato. ...Nosotros no tenemos gato.</p><p class="sig">Mamá</p>`,
-  4: `<p>Steicy:</p><p>Si escuchás que alguien te llama por tu nombre, no contestes. Yo nunca te llamaría de noche.</p><p>Y no entiendo cómo, pero ahora la tele se prende aunque no haya luz.</p><p class="sig">Mamá</p>`,
+  3: `<p>Steicy:</p><p>Tapé el espejo del baño con la toalla. Si se cae, volvé a taparlo. Y NUNCA lo alumbres con la linterna.</p><p>A veces se quema un fusible del tablero. Hay repuestos escondidos por ahí.</p><p>En el sótano apareció una muñeca vieja. No es nuestra. La guardé en una caja, pero si la ves afuera, no le saques los ojos de encima: vigilala con el monitor y, si se te acerca, guardala.</p><p>Encontré rasguños en el piso, abajo de tu cama. Seguro fue el gato. ...Nosotros no tenemos gato.</p><p class="sig">Mamá</p>`,
+  4: `<p>Steicy:</p><p>Si escuchás que alguien te llama por tu nombre, no contestes. Yo nunca te llamaría de noche.</p><p>Y no entiendo cómo, pero ahora la tele se prende aunque no haya luz.</p><p>El ropero de tu cuarto no cierra bien. Si lo ves entreabierto, cerralo. No mires adentro.</p><p class="sig">Mamá</p>`,
   5: `<p>Steicy:</p><p>Esta es la última noche. Después de esta, se van. Aguantá hasta las 6, mi amor.</p><p class="sig">Mamá</p>`,
   6: `<p>Steicy:</p><p>Dije que se iban. Mentí.</p><p class="sig">—</p>`
 };
@@ -605,6 +720,8 @@ const CAUSES = {
   espejo: 'La chica del espejo salió del baño. Mantené el espejo tapado con la toalla y nunca lo alumbres.',
   sombra: 'La Sombra te atrapó. Cuando aparece, alumbrala con la linterna hasta que se vaya, o escapá a otra habitación.',
   escondido: 'El Escondido te encontró primero. Cuando la luz de una habitación se apaga sola, prendé la linterna y buscalo antes de que se acabe el tiempo.',
+  muneca: 'La Muñeca llegó hasta vos. Vigilala con el monitor para que no avance, y si entra a tu habitación, no le saques la vista de encima o guardala.',
+  ropero: 'Algo salió del ropero. Si lo ves entreabierto, cerralo antes de que se abra del todo.',
   oscuridad: 'Steicy se quedó a oscuras. Juntá pilas de repuesto y no dejes que la linterna se apague en un lugar sin luz.'
 };
 const MAMA_LORE = [
@@ -612,7 +729,7 @@ const MAMA_LORE = [
   'Mamá: "La señora de al lado dice que antes vivía una nena acá. Abril. Nunca la encontraron."',
   'Mamá: "No le tengas miedo a la oscuridad. Tenele miedo a lo que hay adentro."'
 ];
-const INTRO = { escondido: 1, sotano: 1, ventana: 1, cama: 1, tele: 1, luz: 1, under: 1, pila: 1, mapa: 1, canilla: 2, telefono: 2, sombra: 2, espejo: 3, fusible: 3 };
+const INTRO = { monitor: 1, muneca: 3, ropero: 4, escondido: 1, sotano: 1, ventana: 1, cama: 1, tele: 1, luz: 1, under: 1, pila: 1, mapa: 1, canilla: 2, telefono: 2, sombra: 2, espejo: 3, fusible: 3 };
 
 /* ---------------- game state ---------------- */
 let G = null, mode = 'menu', T = 0, pointer = null, sustosOn = store.get('steicy_sustos', true);
@@ -620,10 +737,12 @@ $('sustos').checked = sustosOn;
 $('sustos').addEventListener('change', e => { sustosOn = e.target.checked; store.set('steicy_sustos', sustosOn); });
 const pagesFound = () => store.get('steicy_pages', []);
 
-function newNight(n) {
-  const k = n - 1;
+function newNight(n, custom) {
+  const K = id => { if (custom) { const lv = custom[id] || 0; return lv > 0 ? (lv - 1) / 19 * 6 : -1; } return n >= THREATS.find(x => x.id === id).from ? n - 1 : -1; };
+  const k = id => Math.max(0, K(id));
+  const kAvg = custom ? THREATS.reduce((s, x) => s + (custom[x.id] || 0), 0) / (THREATS.length * 20) * 6 : n - 1;
   return {
-    n, t: 0, hourLen: 60, hour: 0, room: 'cuarto', view: 'room', aim: { x: 640, y: 360 }, fade: 0,
+    n, custom: custom || null, pilasUsed: 0, t: 0, hourLen: 60, hour: 0, room: 'cuarto', view: 'room', aim: { x: 640, y: 360 }, fade: 0,
     power: { on: true, flicker: 0, next: rand(30, 45), fuse: false },
     flash: { on: false, bat: 100, pilas: 0, fusibles: 0 },
     win: { state: 'closed', o: 0, wait: rand(12, 18), ghostA: 0, killT: 0 },
@@ -634,22 +753,31 @@ function newNight(n) {
     phone: { ring: 0, next: rand(35, 55), ringSnd: 0 },
     sombra: { room: 'sotano', moveT: 30, enc: 0, flee: 0, cool: 0 },
     hidden: { active: false, pending: 0, room: null, spot: null, t: 0, found: 0, next: rand(60, 80) },
+    monitor: { open: false, cam: 'living', used: false, switchT: 0 },
+    doll: { room: 'sotano', stage: 0, moveT: 25, stepT: 6 },
+    ropero: { o: 0, opening: false, wait: rand(25, 40) },
     dark: { t: 0 }, items: {}, underPos: { x: 640, y: 600 },
     spawnT: rand(14, 22), ambientT: rand(8, 14), heartT: 0,
     action: null, toasts: [], hintsShown: {},
     bear: { tilt: 0, target: 0, red: false }, doorShadow: -1, portrait: 0, curtain: 0,
     cause: null, jsT: 0,
-    f: { canilla: n >= 2, telefono: n >= 2, sombra: n >= 2, espejo: n >= 3, fusibles: n >= 3, teleSinLuz: n >= 4 },
+    f: {
+      ventana: K('ventana') >= 0, cama: K('cama') >= 0, tele: K('tele') >= 0, apagon: K('apagon') >= 0, escondido: K('escondido') >= 0,
+      canilla: K('canilla') >= 0, telefono: K('telefono') >= 0, sombra: K('sombra') >= 0, espejo: K('espejo') >= 0,
+      muneca: K('muneca') >= 0, ropero: K('ropero') >= 0, fusibles: K('apagon') >= 2, teleSinLuz: K('tele') >= 3
+    },
     d: {
-      winWait: [Math.max(8, 20 - 2 * k), Math.max(14, 36 - 3 * k)], winSpeed: 1 / (14 - 1.4 * k), ghostKill: Math.max(3.5, 8 - .8 * k),
-      bedRate: .03 * (1 + .3 * k),
-      teleWait: [Math.max(10, 30 - 3 * k), Math.max(20, 55 - 5 * k)], teleRate: 1 / (28 - 3 * k),
-      powerEvery: [Math.max(20, 45 - 4 * k), Math.max(35, 75 - 6 * k)],
-      aguaWait: [Math.max(15, 40 - 4 * k), Math.max(25, 70 - 6 * k)], aguaRate: 1 / (40 - 4 * k),
-      espejoRate: .012 * (1 + .3 * Math.max(0, k - 2)),
-      sombraMove: Math.max(7, 17 - 2 * k), sombraLimit: Math.max(3.5, 6.5 - .6 * k), sombraChase: .45 + .08 * k,
-      drain: .9 + .13 * k,
-      hidEvery: [Math.max(30, 55 - 5 * k), Math.max(50, 85 - 7 * k)], hidLimit: Math.max(25, 60 - 7 * k)
+      winWait: [Math.max(8, 20 - 2 * k('ventana')), Math.max(14, 36 - 3 * k('ventana'))], winSpeed: 1 / (14 - 1.4 * k('ventana')), ghostKill: Math.max(3.5, 8 - .8 * k('ventana')),
+      bedRate: .03 * (1 + .3 * k('cama')),
+      teleWait: [Math.max(10, 30 - 3 * k('tele')), Math.max(20, 55 - 5 * k('tele'))], teleRate: 1 / (28 - 3 * k('tele')),
+      powerEvery: [Math.max(20, 45 - 4 * k('apagon')), Math.max(35, 75 - 6 * k('apagon'))],
+      aguaWait: [Math.max(15, 40 - 4 * k('canilla')), Math.max(25, 70 - 6 * k('canilla'))], aguaRate: 1 / (40 - 4 * k('canilla')),
+      espejoRate: .012 * (1 + .3 * Math.max(0, k('espejo') - 2)),
+      sombraMove: Math.max(7, 17 - 2 * k('sombra')), sombraLimit: Math.max(3.5, 6.5 - .6 * k('sombra')), sombraChase: .45 + .08 * k('sombra'),
+      drain: .9 + .13 * kAvg,
+      hidEvery: [Math.max(30, 55 - 5 * k('escondido')), Math.max(50, 85 - 7 * k('escondido'))], hidLimit: Math.max(25, 60 - 7 * k('escondido')),
+      dollMove: Math.max(8, 22 - 2.5 * k('muneca')), dollStep: Math.max(3, 7 - .6 * k('muneca')),
+      roperoWait: [Math.max(15, 35 - 3 * k('ropero')), Math.max(30, 60 - 5 * k('ropero'))], roperoRate: 1 / (30 - 3 * k('ropero'))
     }
   };
 }
@@ -694,6 +822,17 @@ function doHotspot(h) {
   if (h.id === 'cama') return toggleUnder();
   if (h.id === 'go') return travelTo(h.go);
   if (busy()) return;
+  if (h.id === 'muneca') {
+    sfx.steps(1);
+    return startAction('Guardando la muñeca en su caja...', 1.5, () => {
+      const M = g.doll; let far = g.room; for (const r in ROOMS) if (DIST[g.room][r] > DIST[g.room][far]) far = r;
+      M.room = far; M.stage = 0; M.moveT = g.d.dollMove * 1.5; sfx.thump(); toast('La guardaste... ¿por cuánto tiempo?', 3);
+    });
+  }
+  if (h.id === 'search' && h.spot === 'ropero' && g.ropero.opening) {
+    sfx.steps(1);
+    return startAction('Cerrando el ropero...', 1.2, () => { const R = g.ropero; R.o = 0; R.opening = false; R.wait = rand(...g.d.roperoWait); sfx.slam(); });
+  }
   if (h.id === 'search') {
     sfx.rummage();
     const key = g.room + '.' + h.spot;
@@ -753,10 +892,23 @@ function answerPhone() {
     if (hidden.length) { const k = pick(hidden), info = spotInfo(k); toast(`Mamá: "Dejé ${ITEM_NAME[g.items[k]]} en ${info.name} (${ROOMS[info.room].short})."`, 6); }
     else toast(pick(MAMA_LORE), 6);
   } else {
-    sfx.whisper(); toast('No es mamá. Una voz respira del otro lado... y dice tu nombre.', 4);
-    if (g.f.sombra) { const S = g.sombra; S.room = ADJ[g.room].reduce((a, b) => (Math.random() < .5 ? a : b)); S.cool = 0; S.moveT = 3; at(S.room, () => sfx.steps(3)); }
-    else g.bed.s = Math.min(3.5, g.bed.s + 1);
+    if (!g.custom && g.n >= 4 && !g.choiceShown) { g.choiceShown = true; sfx.whisper(); mode = 'choice'; silenceLoops(); show('choice'); return; }
+    vozEffect();
   }
+}
+function vozEffect() {
+  const g = G;
+  sfx.whisper(); toast('No es mamá. Una voz respira del otro lado... y dice tu nombre.', 4);
+  if (g.f.sombra) { const S = g.sombra; S.room = pick(ADJ[g.room]); S.cool = 0; S.moveT = 3; at(S.room, () => sfx.steps(3)); }
+  else if (g.f.cama) g.bed.s = Math.min(3.5, g.bed.s + 1);
+}
+function toggleMonitor() {
+  const g = G, M = g.monitor;
+  if (M.open) { M.open = false; sfx.click(); return; }
+  if (g.action && g.action.travel) return toast('Esperá...', 1.2);
+  if (g.flash.bat <= 0) return toast('No hay pila para el monitor. Apretá R.');
+  M.open = true; M.used = true; M.switchT = .3; g.flash.on = false; g.view = 'room'; sfx.static();
+  hint('monitor', 'El monitor muestra las otras habitaciones. Tocá una en el mapa para cambiar de cámara. Gasta pila.');
 }
 function giveItem(it) {
   const f = G.flash;
@@ -771,17 +923,20 @@ function giveItem(it) {
     const found = pagesFound(); const idx = G.n - 1;
     if (!found.includes(idx)) { found.push(idx); store.set('steicy_pages', found); }
     $('pageText').innerHTML = `<p><b>Página ${idx + 1} de 6</b></p><p>${PAGES[idx]}</p>`;
-    mode = 'page'; setAmb(.4); show('page'); $('pageGo').focus();
+    mode = 'page'; setLoop(ambGain, .4); silenceLoops(); show('page'); $('pageGo').focus();
+    if (pagesFound().length >= 6) unlock('detective');
   }
 }
 function toggleUnder() {
   const g = G;
   if (g.room !== 'cuarto' || busy()) return;
+  g.monitor.open = false;
   g.view = g.view === 'room' ? 'under' : 'room'; g.fade = .8; sfx.rustle();
   if (g.view === 'under') hint('under', 'Si ves ojos, apuntales con la linterna prendida hasta que se escondan.');
 }
 function toggleFlash() {
   const f = G.flash;
+  if (G.monitor.open) return toast('Cerrá el monitor primero (C).', 2);
   if (!f.on && f.bat <= 0) return toast('La linterna no tiene pila. Apretá R para cambiarla.');
   f.on = !f.on; sfx.click();
 }
@@ -790,7 +945,7 @@ function changePila() {
   if (busy()) return;
   if (f.pilas <= 0) return toast('No tenés pilas de repuesto. Buscá por la casa.');
   if (f.bat >= 90) return toast('La pila todavía está casi llena.', 2);
-  startAction('Cambiando la pila...', 1.2, () => { f.pilas--; f.bat = 100; sfx.click(); });
+  startAction('Cambiando la pila...', 1.2, () => { f.pilas--; f.bat = 100; G.pilasUsed++; sfx.click(); });
 }
 
 /* ---------------- update ---------------- */
@@ -800,7 +955,7 @@ function update(dt) {
   const hour = Math.floor(g.t / g.hourLen);
   if (hour > g.hour) {
     g.hour = hour; if (hour >= 6) return nightWon(); sfx.bell();
-    if (hour === 1 && !pagesFound().includes(g.n - 1)) { placeItem('pagina'); toast('Se escuchó un papel caer en algún lugar de la casa...', 4); }
+    if (hour === 1 && !g.custom && !pagesFound().includes(g.n - 1)) { placeItem('pagina'); toast('Se escuchó un papel caer en algún lugar de la casa...', 4); }
   }
   if (g.fade > 0) g.fade = Math.max(0, g.fade - dt * 3);
   for (const t of g.toasts) t.life -= dt;
@@ -814,13 +969,14 @@ function update(dt) {
   }
 
   const P = g.power;
-  if (P.on) {
+  if (P.on && g.f.apagon) {
     if (P.flicker > 0) { P.flicker -= dt; if (Math.random() < dt * 8) sfx.buzz(); if (P.flicker <= 0) cutPower(); }
     else { P.next -= dt; if (P.next <= 0) P.flicker = 1.6; }
   }
 
   const Wn = g.win;
-  if (Wn.state === 'closed') {
+  if (!g.f.ventana) { /* esta noche la ventana no molesta */ }
+  else if (Wn.state === 'closed') {
     Wn.wait -= dt;
     if (Wn.wait <= 0) { Wn.state = 'opening'; at('cuarto', sfx.creak); hint('ventana', 'Se escuchó un crujido en el cuarto: la ventana se está abriendo sola.'); }
   } else if (Wn.state === 'opening') {
@@ -833,7 +989,8 @@ function update(dt) {
   }
 
   const B = g.bed;
-  if (B.cool > 0) B.cool -= dt;
+  if (!g.f.cama) B.s = 0;
+  else if (B.cool > 0) B.cool -= dt;
   else {
     const prev = B.s;
     B.s += d.bedRate * dt * (roomDark('cuarto') ? 1.7 : 1);
@@ -851,7 +1008,7 @@ function update(dt) {
   }
 
   const Tv = g.tele;
-  if (!Tv.on) { Tv.wait -= dt; if (Tv.wait <= 0 && telePowered()) { Tv.on = true; Tv.s = 0; at('living', sfx.static); hint('tele', 'Se escucha estática en el living: la tele se prendió sola.'); } }
+  if (!Tv.on) { Tv.wait -= dt; if (Tv.wait <= 0 && g.f.tele && telePowered()) { Tv.on = true; Tv.s = 0; at('living', sfx.static); hint('tele', 'Se escucha estática en el living: la tele se prendió sola.'); } }
   else if (telePowered()) { Tv.s += d.teleRate * dt; if (Tv.s >= 1) return die('tele'); }
 
   if (g.f.canilla) {
@@ -887,6 +1044,39 @@ function update(dt) {
     } else { Ph.next -= dt; if (Ph.next <= 0) { Ph.ring = 10; Ph.ringSnd = 0; hint('telefono', 'Suena el teléfono de la cocina. Tenés unos segundos para atender.'); } }
   }
 
+  const Mon = g.monitor;
+  if (Mon.open) {
+    Mon.switchT = Math.max(0, Mon.switchT - dt);
+    F.bat = Math.max(0, F.bat - .7 * dt);
+    if (F.bat <= 0) { Mon.open = false; sfx.clunk(); toast('El monitor se quedó sin pila.'); }
+  }
+
+  if (g.f.ropero) {
+    const R = g.ropero;
+    if (!R.opening) { R.wait -= dt; if (R.wait <= 0) { R.opening = true; at('cuarto', sfx.groan); hint('ropero', 'Algo cruje en tu cuarto... ¿el ropero?'); } }
+    else { R.o = Math.min(1, R.o + d.roperoRate * dt); if (Math.random() < dt * .2) at('cuarto', sfx.groan); if (R.o >= 1) return die('ropero'); }
+  }
+
+  if (g.f.muneca) {
+    const M = g.doll;
+    if (M.room === g.room) {
+      const sp = dollPos(M.room, M.stage);
+      const seen = !Mon.open && g.view === 'room' && !(g.action && g.action.travel) && (!roomDark(g.room) || (flashLit() && dist(g.aim, sp) < 140));
+      if (!seen) {
+        M.stepT -= dt;
+        if (M.stepT <= 0) { M.stage++; M.stepT = d.dollStep; at(g.room, sfx.dollStep); if (M.stage >= 3) return die('muneca'); }
+      }
+      hint('muneca', 'La Muñeca está acá. Solo se mueve si no la mirás. Hacé click en ella para guardarla.');
+    } else if (!(Mon.open && Mon.cam === M.room)) {
+      M.moveT -= dt;
+      if (M.moveT <= 0) {
+        M.moveT = d.dollMove * rand(.8, 1.2);
+        M.room = ADJ[M.room].reduce((a, b) => DIST[b][g.room] < DIST[a][g.room] ? b : a);
+        M.stage = 0; M.stepT = d.dollStep; at(M.room, sfx.dollStep);
+      }
+    }
+  }
+
   if (g.f.sombra && updateSombra(dt)) return;
 
   const Hd = g.hidden;
@@ -897,7 +1087,7 @@ function update(dt) {
       if (!hint('escondido', 'Se apagó la luz de esta habitación sola... Hay algo escondido acá. Prendé la linterna (F) y buscalo.')) toast('Se apagó la luz... hay algo escondido acá.', 3);
     }
   } else if (!Hd.active) {
-    if (P.on && g.room !== 'sotano' && !(g.action && g.action.travel)) {
+    if (g.f.escondido && P.on && g.room !== 'sotano' && !(g.action && g.action.travel)) {
       Hd.next -= dt;
       if (Hd.next <= 0) { Hd.room = g.room; Hd.spot = pick(HIDE[g.room]); Hd.pending = 1.2; }
     }
@@ -905,7 +1095,7 @@ function update(dt) {
     Hd.t += dt;
     if (g.room === Hd.room && g.view === 'room' && flashLit() && dist(g.aim, Hd.spot) < 75) {
       Hd.found += dt;
-      if (Hd.found >= 1.2) { Hd.active = false; Hd.next = rand(...d.hidEvery); sfx.hiss(); toast('¡Lo encontraste! Se fue y volvió la luz.', 3); }
+      if (Hd.found >= 1.2) { store.set('steicy_hidcount', store.get('steicy_hidcount', 0) + 1); Hd.active = false; Hd.next = rand(...d.hidEvery); sfx.hiss(); toast('¡Lo encontraste! Se fue y volvió la luz.', 3); }
     }
     if (Hd.active) {
       if (g.room === Hd.room && Math.random() < dt * .25) sfx.breath();
@@ -934,7 +1124,9 @@ function update(dt) {
     g.f.espejo && g.espejo.s > .6 ? (g.espejo.s - .6) * 2 : 0,
     g.f.sombra ? (S.room === g.room ? 1 : DIST[S.room][g.room] === 1 ? .35 : 0) : 0,
     g.dark.t > 0 ? 1 : 0,
-    g.hidden.active ? .3 + .7 * g.hidden.t / d.hidLimit : 0);
+    g.hidden.active ? .3 + .7 * g.hidden.t / d.hidLimit : 0,
+    g.f.muneca && g.doll.room === g.room ? .3 + g.doll.stage * .3 : 0,
+    g.f.ropero && g.ropero.opening ? g.ropero.o * .8 : 0);
   g.heartT -= dt;
   if (danger > .15 && g.heartT <= 0) { sfx.heart(danger); g.heartT = 1.1 - .6 * danger; }
   setLoop(windGain, (.015 + Wn.o * .22) * pf('cuarto'));
@@ -1105,7 +1297,7 @@ function drawBed(t) {
   }
 }
 function lampFlicker() { const Hd = G.hidden; return (G.power.flicker > 0 || (Hd.pending > 0 && Hd.room === G.room)) && Math.random() < .45; }
-function powered() { return G.power.on && !hiddenIn(G.room) && !lampFlicker(); }
+function powered() { return G.power.on && drawRoomId !== 'sotano' && !hiddenIn(drawRoomId) && !lampFlicker(); }
 function drawPeek(x, y, r, a = 1) {
   ctx.save(); ctx.globalAlpha = a;
   ctx.fillStyle = '#08060a'; ell(ctx, x, y - r * .2, r * 1.15, r * 1.2); ctx.fill();
@@ -1123,6 +1315,11 @@ function drawPeek(x, y, r, a = 1) {
 const DRAW = {
   cuarto(t) {
     const g = G;
+    if (g.ropero.o > 0) {
+      const w = 4 + g.ropero.o * 96;
+      ctx.fillStyle = '#050304'; ctx.fillRect(480 - w / 2, 166, w, 328);
+      if (g.ropero.o > .35) drawEyes(480, 300, 40, clamp((g.ropero.o - .35) * 2, 0, 1), t, '#ff8a6a');
+    }
     drawWindow(t);
     const lit = powered();
     if (lit) { const gr = ctx.createRadialGradient(970, 330, 10, 970, 330, 260); gr.addColorStop(0, 'rgba(255,200,120,.35)'); gr.addColorStop(1, 'rgba(255,200,120,0)'); ctx.fillStyle = gr; ctx.fillRect(700, 80, 540, 500); }
@@ -1239,14 +1436,19 @@ function pill(text, x, y, px, color = '#f1e9d6', bg = 'rgba(8,5,12,.75)') {
 }
 function hotspotAt(p) {
   const g = G;
+  if (g.monitor.open) return null;
   if (g.view === 'under') return g.items['cuarto.under'] && dist(p, g.underPos) < 70 ? { id: 'underItem', label: 'Agarrar' } : null;
+  if (g.f.muneca && g.doll.room === g.room) {
+    const sp = dollPos(g.room, g.doll.stage), s = dollScale(g.doll.stage);
+    if (Math.abs(p.x - sp.x) < 34 * s && p.y > sp.y - 90 * s && p.y < sp.y + 6) return { id: 'muneca', label: 'Muñeca: guardarla' };
+  }
   return HOT[g.room].find(h => inside(p, h));
 }
 const MM = { x: 1044, y: 84, cw: 64, ch: 30, gap: 8 };
 function mmRect(r) { const [c, rw] = ROOMS[r].grid; return { x: MM.x + c * (MM.cw + MM.gap), y: MM.y + rw * (MM.ch + MM.gap), w: MM.cw, h: MM.ch }; }
 function mmAt(p) { for (const r in ROOMS) if (inside(p, mmRect(r))) return r; return null; }
 function drawMinimap(t) {
-  const g = G;
+  const g = G, mon = g.monitor.open;
   ctx.fillStyle = 'rgba(8,5,12,.55)'; rrect(ctx, MM.x - 8, MM.y - 8, 3 * MM.cw + 2 * MM.gap + 16, 3 * MM.ch + 2 * MM.gap + 16, 6); ctx.fill();
   ctx.strokeStyle = 'rgba(233,228,201,.35)'; ctx.lineWidth = 2;
   EDGES.forEach(([a, b]) => { const A = mmRect(a), B = mmRect(b); ctx.beginPath(); ctx.moveTo(A.x + A.w / 2, A.y + A.h / 2); ctx.lineTo(B.x + B.w / 2, B.y + B.h / 2); ctx.stroke(); });
@@ -1254,6 +1456,7 @@ function drawMinimap(t) {
     const R = mmRect(r), here = r === g.room;
     ctx.fillStyle = here ? 'rgba(179,38,62,.9)' : roomDark(r) ? 'rgba(10,6,14,.95)' : 'rgba(40,32,50,.95)'; rrect(ctx, R.x, R.y, R.w, R.h, 3); ctx.fill();
     ctx.strokeStyle = here ? '#f1e9d6' : 'rgba(233,228,201,.4)'; ctx.lineWidth = 1.2; ctx.stroke();
+    if (mon && r === g.monitor.cam) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 3; rrect(ctx, R.x - 2, R.y - 2, R.w + 4, R.h + 4, 4); ctx.stroke(); }
     ctx.font = hudFont(12); ctx.textAlign = 'left'; ctx.fillStyle = '#f1e9d6'; ctx.fillText(ROOMS[r].short, R.x + 5, R.y + 19);
     let icon = '';
     if (r === 'living' && g.tele.on && telePowered()) icon = '~';
@@ -1261,18 +1464,21 @@ function drawMinimap(t) {
     if (r === 'cocina' && g.phone.ring > 0 && Math.floor(t * 4) % 2 === 0) icon = '♪';
     if (icon) { ctx.textAlign = 'right'; ctx.font = '20px "VT323", monospace'; ctx.fillStyle = '#ffd36a'; ctx.fillText(icon, R.x + R.w - 4, R.y + 20); }
   }
+  if (mon) { ctx.font = hudFont(13); ctx.textAlign = 'left'; ctx.fillStyle = '#ffd36a'; ctx.fillText('MONITOR: ELEGÍ UNA CÁMARA', MM.x - 6, MM.y + 3 * MM.ch + 2 * MM.gap + 28); }
 }
 function drawAfterDark(t) {
   const g = G;
-  if (g.view === 'under') {
+  if (g.monitor.open) { /* la cámara ya se dibujó entera */ }
+  else if (g.view === 'under') {
     if (g.bed.s >= .5) { const m = monsterPos(); drawEyes(m.x, m.y, m.r, clamp(g.bed.s - .3, 0, 1) * .9, t); }
     if (g.items['cuarto.under'] && flashLit() && dist(g.aim, g.underPos) < 200) sparkle(g.underPos.x - 10, g.underPos.y - 14, t);
   } else {
+    if (g.room === 'cuarto' && g.ropero.o > .5) drawEyes(480, 300, 40, clamp((g.ropero.o - .5) * 1.4, 0, .8), t, '#ff8a6a');
     if (g.room === 'cuarto' && g.bear.red) { ctx.fillStyle = 'rgba(255,40,40,.85)'; ctx.save(); ctx.translate(960, 207); ctx.rotate(g.bear.tilt); ell(ctx, -8, -4, 2.2, 2.2); ctx.fill(); ell(ctx, 8, -4, 2.2, 2.2); ctx.fill(); ctx.restore(); }
     if (flashLit()) for (const s in SPOTS[g.room]) { const p = SPOTS[g.room][s]; if (g.items[g.room + '.' + s] && dist(g.aim, p) < 170) sparkle(p.x, p.y, t); }
     if (g.f.sombra && g.sombra.room === g.room) { const sp = SOMBRA_POS[g.room]; sombraEyes(sp.x, sp.y, sp.h, .9); }
   }
-  if (flashLit()) {
+  if (flashLit() && !g.monitor.open) {
     ctx.save(); ctx.globalCompositeOperation = 'soft-light';
     const gr = ctx.createRadialGradient(g.aim.x, g.aim.y, 0, g.aim.x, g.aim.y, 185); gr.addColorStop(0, 'rgba(255,220,150,.5)'); gr.addColorStop(1, 'rgba(255,220,150,0)');
     ctx.fillStyle = gr; ctx.fillRect(g.aim.x - 190, g.aim.y - 190, 380, 380); ctx.restore();
@@ -1280,7 +1486,7 @@ function drawAfterDark(t) {
   if (mode !== 'play') return;
   if (pointer && !g.action && !mmAt(pointer) && !hudButtons().some(b => b.show && inside(pointer, b))) {
     const h = hotspotAt(pointer);
-    if (h) pill(h.label, pointer.x, clamp(pointer.y - 26, 40, H - 20), 17);
+    if (h) pill(h.spot === 'ropero' && g.ropero.opening ? 'Ropero: cerrarlo' : h.label, pointer.x, clamp(pointer.y - 26, 40, H - 20), 17);
   }
   if (g.action) {
     const a = g.action, k = a.t / a.dur;
@@ -1292,7 +1498,7 @@ function drawAfterDark(t) {
   const p = .6 + .4 * Math.sin(t * 8);
   if (g.f.sombra && g.sombra.room === g.room && !(g.action && g.action.travel)) {
     const left = Math.max(0, g.d.sombraLimit - g.sombra.enc);
-    ctx.save(); ctx.globalAlpha = p; pill(`¡LA SOMBRA ESTÁ ACÁ! Alumbrala o escapá (${left.toFixed(1)})`, 640, 330, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore();
+    ctx.save(); ctx.globalAlpha = p; pill(`¡LA SOMBRA ESTÁ ACÁ! ${g.monitor.open ? 'Cerrá el monitor y alumbrala' : 'Alumbrala o escapá'} (${left.toFixed(1)})`, 640, 330, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore();
     ctx.fillStyle = 'rgba(8,5,12,.75)'; ctx.fillRect(540, 352, 200, 8); ctx.fillStyle = '#e9e4c9'; ctx.fillRect(540, 352, 200 * clamp(g.sombra.flee / 1.1, 0, 1), 8);
   }
   if (g.hidden.active) {
@@ -1302,21 +1508,24 @@ function drawAfterDark(t) {
     ctx.restore();
     if (g.hidden.found > 0) { ctx.fillStyle = 'rgba(8,5,12,.75)'; ctx.fillRect(540, 490, 200, 8); ctx.fillStyle = '#e9e4c9'; ctx.fillRect(540, 490, 200 * clamp(g.hidden.found / 1.2, 0, 1), 8); }
   }
+  if (g.f.muneca && g.doll.room === g.room && g.doll.stage >= 1 && !g.monitor.open) { ctx.save(); ctx.globalAlpha = p; pill('La Muñeca está más cerca... no le saques la vista de encima', 640, 420, 20, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore(); }
   if (g.dark.t > 0) { ctx.save(); ctx.globalAlpha = p; pill('¡ESTÁS A OSCURAS! Cambiá la pila o andá a un lugar con luz', 640, 400, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore(); }
 }
 function hudButtons() {
   const g = G;
   return [
     { id: 'pila', x: 172, y: 648, w: 196, h: 48, label: 'CAMBIAR PILA [R]', show: g.flash.pilas > 0 },
-    { id: 'flash', x: 862, y: 644, w: 196, h: 52, label: g.flash.on ? 'LINTERNA: ON [F]' : 'LINTERNA: OFF [F]', show: true, active: g.flash.on },
-    { id: 'under', x: 1068, y: 644, w: 188, h: 52, label: g.view === 'room' ? 'BAJO LA CAMA [S]' : 'VOLVER [S]', show: g.room === 'cuarto', active: g.view === 'under' }
+    { id: 'monitor', x: 640, y: 644, w: 214, h: 52, label: g.monitor.open ? 'CERRAR MONITOR [C]' : 'MONITOR [C]', show: true, active: g.monitor.open },
+    { id: 'flash', x: 862, y: 644, w: 196, h: 52, label: g.flash.on ? 'LINTERNA: ON [F]' : 'LINTERNA: OFF [F]', show: !g.monitor.open, active: g.flash.on },
+    { id: 'under', x: 1068, y: 644, w: 188, h: 52, label: g.view === 'room' ? 'BAJO LA CAMA [S]' : 'VOLVER [S]', show: g.room === 'cuarto' && !g.monitor.open, active: g.view === 'under' }
   ];
 }
 function drawHUD(t) {
   const g = G;
   ctx.textAlign = 'left'; ctx.font = hudFont(26); ctx.fillStyle = 'rgba(241,233,214,.92)';
-  ctx.fillText(g.n === 6 ? 'PESADILLA' : `NOCHE ${g.n}`, 28, 50);
-  ctx.font = hudFont(16); ctx.fillStyle = 'rgba(241,233,214,.65)'; ctx.fillText(g.view === 'under' ? 'Debajo de la cama' : ROOMS[g.room].name, 28, 76);
+  ctx.fillText(g.custom ? 'PERSONALIZADA' : g.n === 6 ? 'PESADILLA' : `NOCHE ${g.n}`, 28, 50);
+  ctx.font = hudFont(16); ctx.fillStyle = 'rgba(241,233,214,.65)';
+  ctx.fillText(g.monitor.open ? `Mirando el monitor (estás en: ${ROOMS[g.room].short})` : g.view === 'under' ? 'Debajo de la cama' : ROOMS[g.room].name, 28, 76);
   const hr = Math.min(5, Math.floor(g.t / g.hourLen));
   ctx.textAlign = 'right'; ctx.font = '60px "VT323", "Courier New", monospace'; ctx.fillStyle = '#e9e4c9';
   ctx.fillText(`${hr === 0 ? 12 : hr} AM`, W - 28, 62);
@@ -1325,7 +1534,7 @@ function drawHUD(t) {
   ctx.textAlign = 'left'; ctx.font = hudFont(14); ctx.fillStyle = 'rgba(241,233,214,.8)';
   let inv = `PILAS: ${g.flash.pilas}`;
   if (g.f.fusibles) inv += `   FUSIBLES: ${g.flash.fusibles}`;
-  if (pagesFound().includes(g.n - 1)) inv += '   PÁGINA ✓';
+  if (!g.custom && pagesFound().includes(g.n - 1)) inv += '   PÁGINA ✓';
   ctx.fillText(inv, bx, by - 10);
   ctx.strokeStyle = '#e9e4c9'; ctx.lineWidth = 2; rrect(ctx, bx, by, bw, bh, 6); ctx.stroke();
   ctx.fillStyle = '#e9e4c9'; ctx.fillRect(bx + bw, by + 12, 6, 16);
@@ -1341,6 +1550,55 @@ function drawHUD(t) {
     ctx.fillStyle = '#f1e9d6'; ctx.font = hudFont(16); ctx.textAlign = 'center'; ctx.fillText(bt.label, bt.x + bt.w / 2, bt.y + bt.h / 2 + 6);
   }
 }
+function drawDoll(x, y, s, t) {
+  const h = 90 * s;
+  ctx.save();
+  ctx.fillStyle = '#4b5672';
+  ctx.beginPath(); ctx.moveTo(x - h * .12, y - h * .55); ctx.lineTo(x + h * .12, y - h * .55); ctx.lineTo(x + h * .28, y - h * .08); ctx.lineTo(x - h * .28, y - h * .08); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e8e2d6'; ctx.fillRect(x - h * .28, y - h * .1, h * .56, h * .04);
+  ctx.fillStyle = '#d9d2c4'; ctx.fillRect(x - h * .1, y - h * .08, h * .06, h * .08); ctx.fillRect(x + h * .04, y - h * .08, h * .06, h * .08);
+  ctx.strokeStyle = '#d9d2c4'; ctx.lineWidth = h * .05; ctx.lineCap = 'round';
+  [-1, 1].forEach(sd => { ctx.beginPath(); ctx.moveTo(x + sd * h * .12, y - h * .5); ctx.lineTo(x + sd * h * .22, y - h * .3); ctx.stroke(); });
+  ctx.fillStyle = '#5a3420'; ell(ctx, x, y - h * .72, h * .2, h * .2); ctx.fill();
+  [-1, 1].forEach(sd => { ell(ctx, x + sd * h * .17, y - h * .6, h * .07, h * .1); ctx.fill(); });
+  ctx.fillStyle = '#efe8dc'; ell(ctx, x, y - h * .7, h * .15, h * .17); ctx.fill();
+  ctx.fillStyle = '#5a3420'; ell(ctx, x, y - h * .84, h * .16, h * .07); ctx.fill();
+  ctx.fillStyle = '#000'; ell(ctx, x - h * .055, y - h * .71, h * .035, h * .045); ctx.fill(); ell(ctx, x + h * .055, y - h * .71, h * .035, h * .045); ctx.fill();
+  ctx.fillStyle = '#fff'; ell(ctx, x - h * .05, y - h * .72, h * .008, h * .008); ctx.fill(); ell(ctx, x + h * .06, y - h * .72, h * .008, h * .008); ctx.fill();
+  ctx.fillStyle = '#a3343a'; ell(ctx, x, y - h * .62, h * .025, h * .015); ctx.fill();
+  ctx.strokeStyle = 'rgba(60,40,40,.6)'; ctx.lineWidth = Math.max(1, h * .008);
+  ctx.beginPath(); ctx.moveTo(x + h * .03, y - h * .85); ctx.lineTo(x + h * .07, y - h * .76); ctx.lineTo(x + h * .05, y - h * .7); ctx.stroke();
+  ctx.restore();
+}
+let drawRoomId = 'cuarto';
+function drawScene(r, t) {
+  const g = G; drawRoomId = r;
+  ctx.drawImage(BG[r], 0, 0, W, H);
+  DRAW[r](t);
+  if (hiddenIn(r)) drawPeek(g.hidden.spot.x, g.hidden.spot.y, 30);
+  if (g.f.muneca && g.doll.room === r) { const sp = dollPos(r, g.doll.stage); drawDoll(sp.x, sp.y, dollScale(g.doll.stage), t); }
+  if (g.f.sombra && g.sombra.room === r) { const sp = SOMBRA_POS[r]; drawSombra(sp.x, sp.y, sp.h, t, r === g.room ? clamp(g.sombra.enc * 2, 0, 1) : 1); }
+  if (r === 'cuarto') DRAW.cuartoFront(t);
+  drawRoomId = g.room;
+}
+function drawCamera(t) {
+  const g = G, r = g.monitor.cam;
+  drawScene(r, t);
+  ctx.save();
+  ctx.globalCompositeOperation = 'color'; ctx.fillStyle = '#4f8a62'; ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = roomDark(r) ? 'rgba(0,10,4,.5)' : 'rgba(0,10,4,.15)'; ctx.fillRect(0, 0, W, H);
+  if (g.f.sombra && g.sombra.room === r) { const sp = SOMBRA_POS[r]; sombraEyes(sp.x, sp.y, sp.h, 1); }
+  const interf = .1 + (g.f.sombra && g.sombra.room === r ? .3 : 0) + g.monitor.switchT * 2.5;
+  ctx.globalAlpha = clamp(interf, 0, 1); ctx.drawImage(NOISE[Math.floor(t * 24) % 3], 0, 0, W, H); ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(0,0,0,.18)'; for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
+  const gr = ctx.createRadialGradient(640, 360, 300, 640, 360, 800); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.75)');
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+  ctx.font = '34px "VT323", monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#cfe8d2';
+  ctx.fillText(`CAM ${CAM_NUM[r]} · ${ROOMS[r].short.toUpperCase()}`, 28, 122);
+  if (Math.floor(t * 2) % 2 === 0) { ctx.fillStyle = '#e0414d'; ell(ctx, 40, 148, 8, 8); ctx.fill(); ctx.fillStyle = '#cfe8d2'; ctx.fillText('REC', 56, 158); }
+  ctx.restore();
+}
 function drawJumpscare(t) {
   const g = G, k = g.jsT, c = g.cause;
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
@@ -1352,6 +1610,8 @@ function drawJumpscare(t) {
   ctx.save(); ctx.translate(rand(-sh, sh), rand(-sh, sh));
   if (c === 'ventana' || c === 'tele' || c === 'espejo') drawGhost(640, 400, 300 * grow, alpha, true);
   else if (c === 'escondido') drawPeek(640, 400, 230 * grow, alpha);
+  else if (c === 'muneca') { ctx.globalAlpha = alpha; drawDoll(640, 760, 6.5 * grow, t); ctx.globalAlpha = 1; }
+  else if (c === 'ropero') { ctx.globalAlpha = alpha; drawMonsterBody(640, 400, 280 * grow, 3.5, t); ctx.globalAlpha = 1; drawEyes(640, 400, 280 * grow, alpha, t, '#ff8a6a'); }
   else if (c === 'cama') { ctx.globalAlpha = alpha; drawMonsterBody(640, 400, 280 * grow, 4, t); ctx.globalAlpha = 1; drawEyes(640, 400, 280 * grow, alpha, t); }
   else {
     const R = 280 * grow; drawEyes(640, 380, R, alpha, t, '#ffffff');
@@ -1363,28 +1623,220 @@ function drawJumpscare(t) {
 }
 function render(t) {
   ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  if (mode === 'mini' && MG) return renderMini(t);
   if (mode === 'jumpscare') return drawJumpscare(t);
   const g = G;
-  if (g.view === 'under') {
+  if (g.monitor.open) drawCamera(t);
+  else if (g.view === 'under') {
     ctx.drawImage(BG.under, 0, 0, W, H);
     if (g.items['cuarto.under']) drawItem(g.items['cuarto.under'], g.underPos.x, g.underPos.y);
     if (g.bed.s > .05) { const m = monsterPos(); drawMonsterBody(m.x, m.y, m.r, g.bed.s, t); }
-  } else {
-    ctx.drawImage(BG[g.room], 0, 0, W, H);
-    DRAW[g.room](t);
-    if (hiddenIn(g.room)) drawPeek(g.hidden.spot.x, g.hidden.spot.y, 30);
-    if (g.f.sombra && g.sombra.room === g.room) { const sp = SOMBRA_POS[g.room]; drawSombra(sp.x, sp.y, sp.h, t, clamp(g.sombra.enc * 2, 0, 1)); }
-    if (g.room === 'cuarto') DRAW.cuartoFront(t);
-  }
-  drawDarkness();
+  } else drawScene(g.room, t);
+  if (!g.monitor.open) drawDarkness();
   drawAfterDark(t);
-  if (mode === 'play' || mode === 'pause' || mode === 'page') drawHUD(t);
+  if (['play', 'pause', 'page', 'choice'].includes(mode)) drawHUD(t);
   if (g.fade > 0) { ctx.fillStyle = `rgba(0,0,0,${g.fade})`; ctx.fillRect(0, 0, W, H); }
 }
 
+/* ---------------- recuerdos de 1987 (minijuegos) ---------------- */
+const PX = document.createElement('canvas'); PX.width = 192; PX.height = 108; const px = PX.getContext('2d');
+const keysDown = new Set();
+function R(c, col, x, y, w, h) { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), w, h); }
+function drawAbril(c, x, y, t, moving, smile) {
+  x = Math.round(x); y = Math.round(y);
+  const step = moving ? Math.floor(t * 8) % 2 : 0;
+  R(c, '#e8c9a8', x + 1, y + 8, 1, 2 + step); R(c, '#e8c9a8', x + 4, y + 8, 1, 3 - step);
+  R(c, '#d9a43a', x, y + 4, 6, 5);
+  R(c, '#e8c9a8', x + 1, y + 1, 4, 4);
+  R(c, '#4a2a1a', x, y, 6, 2); R(c, '#4a2a1a', x, y + 2, 1, 4); R(c, '#4a2a1a', x + 5, y + 2, 1, 4);
+  R(c, '#000', x + 2, y + 2, 1, 1); R(c, '#000', x + 4, y + 2, 1, 1);
+  if (smile) R(c, '#7a1a1a', x + 2, y + 4, 3, 1);
+}
+function roomBase(c, wall, floor) { R(c, wall, 0, 0, 192, 36); R(c, 'rgba(0,0,0,.3)', 0, 34, 192, 3); R(c, floor, 0, 37, 192, 71); for (let x = 0; x < 192; x += 16) R(c, 'rgba(0,0,0,.18)', x, 37, 1, 71); }
+function abrilRoom(c, f, t) {
+  roomBase(c, '#3a2d4f', '#4a3626');
+  for (let x = 6; x < 192; x += 12) R(c, 'rgba(255,255,255,.04)', x, 0, 5, 34);
+  R(c, '#bdb2a0', 18, 6, 30, 26); R(c, '#1a2250', 20, 8, 26, 22); R(c, '#efe8c8', 38, 11, 4, 4);
+  if (f.windowOpen) { R(c, '#cfc5b2', 20, 8, 4, 22); R(c, '#cfc5b2', 42, 8, 4, 22); R(c, '#6e2843', 12, 6, 6, 30); R(c, '#6e2843', 48, 6, 6, 30); }
+  else { R(c, '#cfc5b2', 32, 8, 2, 22); R(c, '#cfc5b2', 20, 18, 26, 2); }
+  if (f.face && Math.floor(t * 6) % 3) { R(c, '#dfe6e8', 28, 14, 6, 8); R(c, '#000', 29, 16, 1, 2); R(c, '#000', 32, 16, 1, 2); }
+  R(c, '#4e3322', 140, 38, 42, 5); R(c, '#6a3a6c', 140, 43, 42, 24); R(c, '#e9e3d6', 143, 45, 10, 6); R(c, '#2a1520', 140, 67, 42, 3);
+  if (!f.night) [[60, 62, 16, 12], [80, 68, 14, 10], [66, 50, 12, 10]].forEach(([x, y, w, h]) => { R(c, f.boxOpen ? '#b88f5a' : '#a07a4a', x, y, w, h); R(c, '#c9a87a', x + w / 2 - 1, y, 2, h); });
+}
+const MINIS = [
+  { title: 'Recuerdo 1: La mudanza', start: { x: 100, y: 84 }, draw: abrilRoom,
+    steps: [
+      { say: ['12 de marzo de 1987.', 'Abril y su mamá se mudan a la casa nueva.'] },
+      { go: { x: 54, y: 44, w: 46, h: 40 }, hint: 'Abrí las cajas de la mudanza' },
+      { fx: f => { f.boxOpen = true; sfx.rummage(); } },
+      { say: ['Abril: "Mi pieza nueva tiene una ventana rara."'] },
+      { go: { x: 14, y: 37, w: 40, h: 12 }, hint: 'Mirá por la ventana' },
+      { fx: f => { f.windowOpen = true; sfx.creak(); } },
+      { wait: 1 },
+      { say: ['La ventana se abrió sola.', 'Abril la cierra. Se vuelve a abrir.', 'Mamá: "Es el viento, Abril."'] },
+      { fx: f => { f.face = true; sfx.whisper(); } },
+      { wait: 1.6 },
+      { say: ['El viento no tiene cara.'] }
+    ] },
+  { title: 'Recuerdo 2: Los caños', start: { x: 40, y: 80 }, dark: true,
+    draw: (c, f, t) => { f.night = true; abrilRoom(c, f, t); },
+    post: (c, f, t) => { if (f.eyes && Math.floor(t * 3) % 5) { R(c, '#f6e7a1', 150, 69, 2, 1); R(c, '#f6e7a1', 156, 69, 2, 1); } },
+    steps: [
+      { say: ['Esa noche, Abril no se puede dormir.', 'Algo rasca el piso de madera.'] },
+      { fx: () => sfx.scratch() },
+      { go: { x: 124, y: 62, w: 62, h: 22 }, hint: 'Acercate a la cama' },
+      { say: ['Abril se agacha a mirar...'] },
+      { fx: f => { f.eyes = true; sfx.scratch(); } },
+      { wait: 1.6 },
+      { say: ['Mamá dice que son los caños.', 'Los caños no tienen ojos.'] }
+    ] },
+  { title: 'Recuerdo 3: El reflejo', start: { x: 150, y: 80 },
+    draw: (c, f, t, m) => {
+      roomBase(c, '#34444b', '#2a2e33');
+      R(c, '#55696f', 0, 20, 192, 15);
+      for (let x = 0; x < 192; x += 16) for (let y = 38; y < 108; y += 10) if ((x / 16 + Math.floor(y / 10)) % 2) R(c, '#4b5258', x, y, 16, 10);
+      R(c, '#55606a', 4, 8, 16, 28); R(c, '#8a7f6d', 78, 2, 36, 28); R(c, '#2c3a40', 80, 4, 32, 24);
+      drawAbril(c, f.frozen ? f.rx : clamp(m.p.x - 1, 82, 104), 12, t, false, f.smile);
+      R(c, '#dcdfdb', 86, 30, 22, 6); R(c, '#d6d8d4', 140, 40, 46, 22);
+    },
+    steps: [
+      { say: ['Abril se lava los dientes antes de dormir.'] },
+      { go: { x: 82, y: 37, w: 30, h: 14 }, hint: 'Andá al lavatorio' },
+      { say: ['En el espejo, la otra Abril la mira.', 'Abril se mueve para un costado...'] },
+      { fx: (f, m) => { f.frozen = true; f.rx = clamp(m.p.x - 1, 82, 104); } },
+      { go: { x: 130, y: 60, w: 60, h: 40 }, hint: 'Alejate del espejo' },
+      { say: ['...pero el reflejo no se movió.'] },
+      { go: { x: 2, y: 37, w: 22, h: 34 }, hint: 'Salí del baño' },
+      { fx: f => { f.smile = true; sfx.giggle(); } },
+      { wait: 1.2 },
+      { say: ['Cuando mira para atrás, el reflejo está sonriendo.'] }
+    ] },
+  { title: 'Recuerdo 4: El apagón', start: { x: 10, y: 66 }, dark: true,
+    draw: (c, f) => {
+      roomBase(c, '#2a2026', '#3d2a1f'); R(c, '#5a2333', 0, 62, 192, 14);
+      [30, 80, 130].forEach(x => { R(c, '#5f4d3e', x, 8, 16, 28); R(c, '#caa451', x + 12, 22, 2, 2); });
+      R(c, '#0b0810', 176, 6, 16, 30);
+      if (f.shadow) { R(c, '#030204', 178, 20, 8, 40); R(c, '#030204', 179, 14, 6, 7); }
+    },
+    post: (c, f, t) => { if (Math.floor(t * 2) % 4 !== 0) { R(c, '#f2f2ee', 180, 16, 1, 1); R(c, '#f2f2ee', 183, 16, 1, 1); } },
+    steps: [
+      { say: ['Se cortó la luz en toda la casa.', 'La linterna de Abril está casi sin pila.'] },
+      { collect: [{ x: 44, y: 50 }, { x: 108, y: 92 }, { x: 160, y: 56 }], hint: 'Juntá las pilas' },
+      { fx: f => { f.shadow = true; sfx.sting(); } },
+      { wait: 1 },
+      { say: ['Al final del pasillo, algo alto la está mirando.', 'Abril lo alumbra. Se va.', 'Esa noche escribe: "Las pilas son lo más importante."'] }
+    ] },
+  { title: 'Recuerdo 5: La última página', start: { x: 60, y: 86 }, dark: true,
+    draw: (c, f) => {
+      R(c, '#26221f', 0, 0, 192, 36); for (let y = 0; y < 36; y += 6) R(c, 'rgba(0,0,0,.3)', 0, y, 192, 1);
+      R(c, '#1c1a18', 0, 37, 192, 71);
+      for (let i = 0; i < 6; i++) R(c, '#3a2e24', 4 + i * 5, 10 + i * 8, 30, 3);
+      R(c, '#4a4844', 90, 12, 22, 30); R(c, '#3a2518', 158, 14, 30, 2); R(c, '#3a2518', 158, 28, 30, 2); R(c, '#3a2518', 158, 42, 30, 2);
+      [[160, 8], [170, 22], [180, 36]].forEach(([x, y]) => R(c, 'rgba(110,130,70,.8)', x, y, 5, 6));
+      if (f.girl) { R(c, '#dfe6e8', 22, 44, 6, 8); R(c, '#050406', 21, 42, 8, 4); R(c, '#000', 23, 47, 1, 2); R(c, '#000', 26, 47, 1, 2); R(c, '#b9c2c4', 22, 52, 6, 10); }
+    },
+    post: (c, f) => { if (f.glitch) for (let i = 0; i < 6; i++) R(c, pick(['rgba(179,38,62,.6)', 'rgba(200,220,230,.4)', 'rgba(0,0,0,.8)']), 0, Math.random() * 108, 192, 1 + Math.floor(Math.random() * 3)); },
+    steps: [
+      { say: ['La última noche de Abril en la casa.', 'Escribe una página más y baja al sótano a esconderla.'] },
+      { go: { x: 150, y: 37, w: 42, h: 18 }, hint: 'Escondé la página en el estante' },
+      { fx: () => sfx.paper() },
+      { say: ['"Para la próxima chica que viva acá."'] },
+      { fx: f => { f.girl = true; sfx.steps(3); } },
+      { wait: 1.4 },
+      { say: ['Alguien baja la escalera del sótano.', 'Alguien que se parece mucho a Abril.'] },
+      { fx: f => { f.glitch = true; sfx.static(); } },
+      { wait: 1.2 },
+      { say: ['HOLA, STEICY.'] }
+    ] }
+];
+let MG = null;
+function startMini(i, after) {
+  audioInit();
+  MG = { i, def: MINIS[i], step: 0, p: { ...MINIS[i].start }, target: null, flags: {}, t: 0, sayIdx: 0, sayChars: 0, waitT: 0, after, items: [], moving: false, fade: 1 };
+  mode = 'mini'; show(null); silenceLoops(); setLoop(ambGain, .35); enterStep();
+}
+const curStep = () => MG && MG.def.steps[MG.step];
+function nextStep() { MG.step++; enterStep(); }
+function enterStep() {
+  const s = curStep(); if (!s) return endMini();
+  MG.target = null;
+  if (s.fx) { s.fx(MG.flags, MG); return nextStep(); }
+  if (s.wait) MG.waitT = s.wait;
+  if (s.say) { MG.sayIdx = 0; MG.sayChars = 0; }
+  if (s.collect) MG.items = s.collect.map(p => ({ ...p, got: false }));
+}
+function advanceSay() {
+  const s = curStep(); if (!s || !s.say) return;
+  const line = s.say[MG.sayIdx];
+  if (MG.sayChars < line.length) { MG.sayChars = line.length; return; }
+  MG.sayIdx++; MG.sayChars = 0; sfx.click();
+  if (MG.sayIdx >= s.say.length) nextStep();
+}
+function endMini() {
+  const after = MG.after; MG = null; setLoop(ambGain, .2);
+  if (after === 'win') { mode = 'win'; show('win'); } else openExtras();
+}
+function updateMini(dt) {
+  const m = MG; m.t += dt; m.fade = Math.max(0, m.fade - dt * 1.5);
+  const s = curStep(); if (!s) return;
+  m.moving = false;
+  if (s.say) { m.sayChars = Math.min(s.say[m.sayIdx].length, m.sayChars + dt * 38); return; }
+  if (s.wait) { m.waitT -= dt; if (m.waitT <= 0) nextStep(); return; }
+  let vx = 0, vy = 0;
+  if (keysDown.has('arrowleft') || keysDown.has('a')) vx -= 1;
+  if (keysDown.has('arrowright') || keysDown.has('d')) vx += 1;
+  if (keysDown.has('arrowup') || keysDown.has('w')) vy -= 1;
+  if (keysDown.has('arrowdown') || keysDown.has('s')) vy += 1;
+  if (vx || vy) m.target = null;
+  else if (m.target) { const dx = m.target.x - m.p.x, dy = m.target.y - m.p.y, dd = Math.hypot(dx, dy); if (dd > 1.5) { vx = dx / dd; vy = dy / dd; } else m.target = null; }
+  const len = Math.hypot(vx, vy);
+  if (len) { m.p.x += vx / len * 42 * dt; m.p.y += vy / len * 42 * dt; m.moving = true; }
+  m.p.x = clamp(m.p.x, 2, 184); m.p.y = clamp(m.p.y, 28, 96);
+  const feet = { x: m.p.x + 3, y: m.p.y + 9 };
+  if (s.go && inside(feet, s.go)) return nextStep();
+  if (s.collect) {
+    for (const it of m.items) if (!it.got && Math.hypot(it.x - feet.x, it.y - feet.y) < 8) { it.got = true; sfx.pickup(); }
+    if (m.items.every(it => it.got)) nextStep();
+  }
+}
+function renderMini(t) {
+  const m = MG, s = curStep();
+  px.clearRect(0, 0, 192, 108);
+  m.def.draw(px, m.flags, t, m);
+  for (const it of m.items) if (!it.got) { R(px, '#2b7a4b', it.x - 3, it.y - 1, 6, 3); if (Math.floor(t * 4) % 2) R(px, '#fff8d8', it.x - 1, it.y - 4, 1, 1); }
+  if (s && s.go && Math.floor(t * 3) % 2) { const z = s.go; R(px, '#ffd36a', z.x + z.w / 2 - 1, z.y + z.h / 2 - 1, 3, 3); }
+  drawAbril(px, m.p.x, m.p.y, t, m.moving);
+  if (m.def.dark) {
+    const cx = m.p.x + 3, cy = m.p.y + 5, gr = px.createRadialGradient(cx, cy, 6, cx, cy, 46);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.94)'); px.fillStyle = gr; px.fillRect(0, 0, 192, 108);
+  }
+  if (m.def.post) m.def.post(px, m.flags, t);
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(PX, 0, 0, W, H); ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
+  const vg = ctx.createRadialGradient(640, 360, 320, 640, 360, 780); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.7)'); ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  ctx.font = '30px "VT323", monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#e9e4c9'; ctx.fillText(m.def.title.toUpperCase(), 24, 40);
+  ctx.textAlign = 'right'; ctx.fillText('1987', W - 24, 40);
+  if (s && (s.go || s.collect)) {
+    const txt = s.collect ? `${s.hint} (${m.items.filter(i => i.got).length}/${m.items.length})` : s.hint;
+    pill('→ ' + txt, 640, 90, 20);
+    ctx.font = hudFont(14); ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(241,233,214,.6)'; ctx.fillText('Flechas o WASD para moverte, o tocá donde querés ir', 640, H - 24);
+  }
+  if (s && s.say) {
+    ctx.fillStyle = 'rgba(5,3,8,.88)'; ctx.fillRect(80, H - 190, W - 160, 140);
+    ctx.strokeStyle = 'rgba(233,228,201,.5)'; ctx.lineWidth = 2; ctx.strokeRect(80, H - 190, W - 160, 140);
+    ctx.font = '34px "VT323", monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#f1e9d6';
+    ctx.fillText(s.say[m.sayIdx].slice(0, Math.floor(m.sayChars)), 110, H - 130);
+    if (m.sayChars >= s.say[m.sayIdx].length && Math.floor(t * 2) % 2) { ctx.textAlign = 'right'; ctx.font = '26px "VT323", monospace'; ctx.fillText('▼ tocá o apretá Enter para seguir', W - 110, H - 72); }
+  }
+  if (m.fade > 0) { ctx.fillStyle = `rgba(0,0,0,${m.fade})`; ctx.fillRect(0, 0, W, H); }
+}
+
 /* ---------------- flow ---------------- */
-function show(id) { ['menu', 'note', 'page', 'over', 'win', 'pause'].forEach(x => { $(x).hidden = x !== id; }); }
+const OVERLAYS = ['menu', 'note', 'page', 'over', 'win', 'pause', 'extras', 'custom', 'ending', 'choice'];
+function show(id) { OVERLAYS.forEach(x => { $(x).hidden = x !== id; }); }
 function demoState() { const d = newNight(1); d.power.on = false; d.flash.on = true; d.win.o = .3; d.win.state = 'opening'; return d; }
+const achs = () => store.get('steicy_ach', []);
+function unlock(id) { const a = achs(); if (a.includes(id)) return false; a.push(id); store.set('steicy_ach', a); return true; }
 function renderMenu() {
   const max = store.get('steicy_max', 1), box = $('nights'); box.innerHTML = '';
   for (let n = 1; n <= NIGHT_MAX; n++) {
@@ -1395,9 +1847,11 @@ function renderMenu() {
     b.addEventListener('click', () => startNight(n));
     box.appendChild(b);
   }
+  $('customBtn').hidden = !achs().includes('cinco');
+  $('extrasBtn').textContent = `Extras · ★ ${achs().length}/${ACH.length}`;
   const found = pagesFound();
   $('diarioTitle').textContent = `Diario de Abril (${found.length}/6)`;
-  $('pages').innerHTML = PAGES.map((p, i) => found.includes(i) ? `<p>${p}</p>` : `<p class="locked">Página ${i + 1}: escondida en algún lugar de la casa durante la noche ${i === 5 ? 'Pesadilla' : i + 1}.</p>`).join('');
+  $('pages').innerHTML = PAGES.map((p, i) => found.includes(i) ? `<p>${p}</p>` : `<p class="locked">Página ${i + 1}: escondida en algún lugar de la casa durante la ${i === 5 ? 'Pesadilla' : 'noche ' + (i + 1)}.</p>`).join('');
 }
 function startNight(n, skipNote) {
   audioInit();
@@ -1408,35 +1862,146 @@ function startNight(n, skipNote) {
 }
 function beginPlay() {
   show(null); mode = 'play'; setLoop(ambGain, 1);
-  if (G.n === 1) { toast('Mové el mouse para apuntar la linterna. F la prende.', 5); setTimeout(() => G && mode === 'play' && hint('mapa', 'Para ir a otra habitación, tocá una puerta o el mapa de arriba a la derecha.'), 5500); }
+  if (G.n === 1) { toast('Mové el mouse para apuntar la linterna. F la prende.', 5); setTimeout(() => G && mode === 'play' && hint('mapa', 'Para ir a otra habitación, tocá una puerta o el mapa de arriba a la derecha. C abre el monitor.'), 5500); }
 }
 function silenceLoops() { [windGain, waterGain, tvGain, humGain].forEach(n => setLoop(n, 0)); }
 function die(cause) {
-  G.cause = cause; G.jsT = 0; mode = 'jumpscare'; silenceLoops(); setLoop(ambGain, 0);
+  G.cause = cause; G.jsT = 0; G.monitor.open = false; mode = 'jumpscare'; silenceLoops(); setLoop(ambGain, 0);
   try { speechSynthesis.cancel(); } catch (e) {}
   if (sustosOn) sfx.scream(); else sfx.thud();
 }
+function customScore(lv) { return THREATS.reduce((s, x) => s + (lv[x.id] || 0), 0); }
 function nightWon() {
   mode = 'win'; sfx.chime(); setLoop(ambGain, .2); silenceLoops();
-  const n = G.n, max = store.get('steicy_max', 1);
-  if (n + 1 > max) store.set('steicy_max', Math.min(NIGHT_MAX, n + 1));
-  $('winTitle').textContent = WINS[n][0]; $('winText').textContent = WINS[n][1];
-  $('next').hidden = n >= NIGHT_MAX; $('next').textContent = n === 5 ? 'Jugar la Pesadilla' : 'Siguiente noche';
+  const g = G, n = g.n, fresh = [];
+  const got = id => { if (unlock(id)) fresh.push(ACH.find(a => a[0] === id)[1]); };
+  if (g.pilasUsed === 0) got('ahorro');
+  if (!g.monitor.used && (g.custom || n >= 3)) got('ciega');
+  if (store.get('steicy_hidcount', 0) >= 10) got('cazadora');
+  if (pagesFound().length >= 6) got('detective');
+  let title, text;
+  if (g.custom) {
+    const score = customScore(g.custom), best = store.get('steicy_best', 0);
+    if (score > best) store.set('steicy_best', score);
+    if (score >= 100) got('valiente');
+    title = 'Noche personalizada superada';
+    text = `Puntaje: ${score}. ${score > best ? '¡Nuevo récord!' : `Tu récord es ${best}.`}`;
+  } else {
+    const max = store.get('steicy_max', 1);
+    if (n + 1 > max) store.set('steicy_max', Math.min(NIGHT_MAX, n + 1));
+    if (n === 1) got('noche1');
+    if (n === 5) got('cinco');
+    if (n === 6) got('pesadilla');
+    [title, text] = WINS[n];
+  }
+  $('winTitle').textContent = title;
+  $('winText').textContent = text + (fresh.length ? ` Estrellas nuevas: ${fresh.join(', ')}.` : '');
+  $('next').hidden = !!g.custom || n >= NIGHT_MAX;
+  $('next').textContent = n === 5 ? 'Jugar la Pesadilla' : 'Siguiente noche';
+  const mem = !g.custom && n <= 5 && pagesFound().includes(n - 1);
+  $('memory').hidden = !mem;
+  if (mem) $('memory').textContent = `Ver ${MINIS[n - 1].title}`;
+  if (!g.custom && n === 5) {
+    const all = [0, 1, 2, 3, 4].every(i => pagesFound().includes(i));
+    if (all) unlock('verdad');
+    return showEnding(all ? 'verdadero' : 'normal', () => { mode = 'win'; show('win'); });
+  }
   show('win');
 }
-function toMenu() { mode = 'menu'; G = demoState(); setLoop(ambGain, .25); silenceLoops(); renderMenu(); show('menu'); }
+let endingThen = null;
+function showEnding(key, then) {
+  const e = ENDINGS[key];
+  $('endKicker').textContent = e.kicker; $('endTitle').textContent = e.title;
+  $('endText').innerHTML = e.text.map(p => `<p>${p}</p>`).join('');
+  endingThen = then; mode = 'ending'; show('ending'); $('endGo').focus();
+}
+function toMenu() { mode = 'menu'; MG = null; G = demoState(); setLoop(ambGain, .25); silenceLoops(); renderMenu(); show('menu'); }
 function pause() { if (mode !== 'play') return; mode = 'pause'; setLoop(ambGain, .3); silenceLoops(); show('pause'); }
 function resume() { if (mode !== 'pause') return; show(null); mode = 'play'; setLoop(ambGain, 1); }
 
+function portrait(id, c) {
+  const x = c.getContext('2d'); x.fillStyle = '#050307'; x.fillRect(0, 0, 240, 240);
+  withCtx(x, () => {
+    const t = 1;
+    if (id === 'ventana') drawGhost(120, 120, 80, 1, true);
+    else if (id === 'cama') { drawMonsterBody(120, 125, 70, 3, t); drawEyes(120, 125, 70, 1, t); }
+    else if (id === 'tele') { ctx.globalAlpha = .5; ctx.drawImage(NOISE[0], 0, 0, 240, 240); ctx.globalAlpha = 1; drawGhost(120, 120, 70, .9, true); }
+    else if (id === 'escondido') drawPeek(140, 120, 60);
+    else if (id === 'sombra') { ctx.fillStyle = '#1a1420'; ctx.fillRect(0, 0, 240, 240); drawSombra(120, 236, 220, t, 1); sombraEyes(120, 236, 220, 1); }
+    else if (id === 'espejo') { ctx.fillStyle = '#8a7f6d'; ctx.fillRect(40, 16, 160, 208); ctx.fillStyle = '#2c3a40'; ctx.fillRect(50, 26, 140, 188); drawGhost(120, 112, 58, .9, true); }
+    else if (id === 'muneca') drawDoll(120, 228, 2.3, t);
+    else if (id === 'ropero') { ctx.fillStyle = '#4e3322'; ctx.fillRect(40, 10, 160, 230); ctx.fillStyle = '#050304'; ctx.fillRect(96, 22, 48, 218); drawEyes(120, 110, 50, 1, t, '#ff8a6a'); }
+  });
+}
+function renderExtras() {
+  const ach = achs(), max = store.get('steicy_max', 1);
+  $('starsTitle').textContent = `Estrellas (${ach.length}/${ACH.length})`;
+  $('achList').innerHTML = ACH.map(([id, name, desc]) => { const on = ach.includes(id); return `<li class="${on ? '' : 'off'}"><span class="star">${on ? '★' : '☆'}</span><span><b>${name}</b>${desc}</span></li>`; }).join('');
+  const gal = $('gallery'); gal.innerHTML = '';
+  MONSTERS.forEach(m => {
+    const ok = max >= m.from || ach.includes('cinco');
+    const card = document.createElement('div'); card.className = 'card';
+    const c = document.createElement('canvas'); c.width = 240; c.height = 240; card.appendChild(c);
+    if (ok) {
+      portrait(m.id, c);
+      card.insertAdjacentHTML('beforeend', `<b>${m.name}</b><p>${m.desc}</p><p><i>${m.tip}</i></p>`);
+      const b = document.createElement('button'); b.textContent = 'Ver susto'; b.addEventListener('click', () => previewScare(m.id)); card.appendChild(b);
+    } else {
+      const x = c.getContext('2d'); x.fillStyle = '#050307'; x.fillRect(0, 0, 240, 240); x.fillStyle = '#3a3346'; x.font = '120px "Creepster", fantasy'; x.textAlign = 'center'; x.fillText('?', 120, 165);
+      card.insertAdjacentHTML('beforeend', `<b>???</b><p>Aparece a partir de la noche ${m.from}.</p>`);
+    }
+    gal.appendChild(card);
+  });
+  const ml = $('memList'); ml.innerHTML = ''; const found = pagesFound();
+  MINIS.forEach((mg, i) => {
+    const b = document.createElement('button'); b.textContent = found.includes(i) ? mg.title : `Recuerdo ${i + 1}: ???`;
+    b.disabled = !found.includes(i); b.addEventListener('click', () => startMini(i, 'extras')); ml.appendChild(b);
+  });
+}
+function openExtras() { renderExtras(); mode = 'menu'; show('extras'); }
+function previewScare(id) { audioInit(); G = demoState(); G.preview = true; G.cause = id; G.jsT = 0; mode = 'jumpscare'; show(null); if (sustosOn) sfx.scream(); else sfx.thud(); }
+
+function renderCustom() {
+  const lv = store.get('steicy_custom', {}), box = $('sliders'); box.innerHTML = '';
+  THREATS.forEach(th => {
+    const v = lv[th.id] ?? 5, row = document.createElement('label'); row.className = 'sl'; row.htmlFor = 'lv-' + th.id;
+    row.innerHTML = `<span>${th.name}</span><input type="range" min="0" max="20" step="1" id="lv-${th.id}" value="${v}"><output id="out-${th.id}">${v}</output>`;
+    box.appendChild(row);
+  });
+  const best = store.get('steicy_best', 0); $('customBest').textContent = best ? `Récord: ${best}` : '';
+  updateCustomScore();
+}
+function readCustom() { const lv = {}; THREATS.forEach(th => { lv[th.id] = +$('lv-' + th.id).value; }); return lv; }
+function updateCustomScore() { $('customScore').textContent = `Puntaje: ${customScore(readCustom())} de ${THREATS.length * 20}`; }
+function setAll(v) { THREATS.forEach(th => { $('lv-' + th.id).value = v; $('out-' + th.id).textContent = v; }); updateCustomScore(); }
+function startCustom(lv) {
+  if (!customScore(lv)) return;
+  audioInit(); store.set('steicy_custom', lv);
+  G = newNight(7, lv); placeItem('pila'); beginPlay();
+}
+$('sliders').addEventListener('input', e => { if (!e.target.id.startsWith('lv-')) return; $('out-' + e.target.id.slice(3)).textContent = e.target.value; updateCustomScore(); });
+$('preset0').addEventListener('click', () => setAll(0));
+$('preset10').addEventListener('click', () => setAll(10));
+$('preset20').addEventListener('click', () => setAll(20));
+$('customGo').addEventListener('click', () => startCustom(readCustom()));
+$('customBack').addEventListener('click', toMenu);
+$('customBtn').addEventListener('click', () => { renderCustom(); show('custom'); });
+$('extrasBtn').addEventListener('click', () => { G = demoState(); openExtras(); });
+$('extrasBack').addEventListener('click', toMenu);
+$('endGo').addEventListener('click', () => { const f = endingThen; endingThen = null; if (f) f(); else toMenu(); });
+$('choiceCut').addEventListener('click', () => { show(null); mode = 'play'; setLoop(ambGain, 1); vozEffect(); });
+$('choiceYes').addEventListener('click', () => { unlock('secreto'); sfx.whisper(); silenceLoops(); setLoop(ambGain, .2); showEnding('secreto', toMenu); });
+$('memory').addEventListener('click', () => startMini(G.n - 1, 'win'));
 $('noteGo').addEventListener('click', beginPlay);
 $('pageGo').addEventListener('click', () => { show(null); mode = 'play'; setLoop(ambGain, 1); });
-$('retry').addEventListener('click', () => startNight(G.n, true));
+$('retry').addEventListener('click', () => G.custom ? startCustom(G.custom) : startNight(G.n, true));
 $('next').addEventListener('click', () => startNight(G.n + 1));
 $('toMenu').addEventListener('click', toMenu);
 $('toMenu2').addEventListener('click', toMenu);
 $('toMenu3').addEventListener('click', toMenu);
 $('resume').addEventListener('click', resume);
-document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { pause(); keysDown.clear(); } });
+addEventListener('blur', () => keysDown.clear());
 
 function toGame(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
 cv.addEventListener('pointermove', e => {
@@ -1446,11 +2011,21 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerleave', () => { pointer = null; });
 cv.addEventListener('pointerdown', e => {
   audioInit();
-  if (mode !== 'play') return;
   const p = toGame(e); pointer = p;
+  if (mode === 'mini' && MG) {
+    const s = curStep();
+    if (s && s.say) advanceSay();
+    else MG.target = { x: p.x / W * 192 - 3, y: p.y / H * 108 - 9 };
+    return;
+  }
+  if (mode !== 'play') return;
   const b = hudButtons().find(b => b.show && inside(p, b));
-  if (b) { if (b.id === 'flash') toggleFlash(); else if (b.id === 'under') toggleUnder(); else changePila(); return; }
-  const m = mmAt(p); if (m) return travelTo(m);
+  if (b) { ({ flash: toggleFlash, under: toggleUnder, monitor: toggleMonitor, pila: changePila })[b.id](); return; }
+  const m = mmAt(p);
+  if (m) {
+    if (G.monitor.open) { G.monitor.cam = m; G.monitor.switchT = .25; sfx.static(); return; }
+    return travelTo(m);
+  }
   G.aim = p;
   const h = hotspotAt(p); if (!h) return;
   if (h.id === 'underItem') {
@@ -1459,12 +2034,20 @@ cv.addEventListener('pointerdown', e => {
   }
   doHotspot(h);
 });
+addEventListener('keyup', e => keysDown.delete(e.key.toLowerCase()));
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
+  keysDown.add(k);
+  if (mode === 'mini') {
+    if (k.startsWith('arrow') || k === ' ') e.preventDefault();
+    if (!e.repeat && (k === 'enter' || k === ' ' || k === 'e')) advanceSay();
+    return;
+  }
   if (k === 'escape' || k === 'p') { if (mode === 'play') pause(); else if (mode === 'pause') resume(); return; }
   if (mode !== 'play' || e.repeat) return;
   if (k === 'f' || k === ' ') { e.preventDefault(); toggleFlash(); }
   else if (k === 's' || k === 'arrowdown') { e.preventDefault(); toggleUnder(); }
+  else if (k === 'c') toggleMonitor();
   else if (k === 'r') changePila();
 });
 
@@ -1473,11 +2056,18 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(.05, (now - last) / 1000); last = now; T += dt;
   if (mode === 'play') update(dt);
+  else if (mode === 'mini' && MG) updateMini(dt);
   else if (mode === 'menu') { G.aim = { x: 640 + Math.sin(T * .6) * 430, y: 330 + Math.sin(T * .9) * 130 }; G.win.o = .3 + Math.sin(T * .4) * .15; }
-  else if (mode === 'jumpscare') { G.jsT += dt; if (G.jsT >= 1.6) { mode = 'over'; $('overCause').textContent = CAUSES[G.cause]; show('over'); setLoop(ambGain, .25); } }
+  else if (mode === 'jumpscare') {
+    G.jsT += dt;
+    if (G.jsT >= 1.6) {
+      if (G.preview) { G = demoState(); openExtras(); setLoop(ambGain, .25); }
+      else { mode = 'over'; $('overCause').textContent = CAUSES[G.cause]; show('over'); setLoop(ambGain, .25); }
+    }
+  }
   render(T);
 }
-if (/[?&]debug\b/.test(location.search)) window.steicyDebug = () => G;
+if (/[?&]debug\b/.test(location.search)) window.steicyDebug = { G: () => G, mode: () => mode, step: (s, n = 1) => { for (let i = 0; i < n && mode === 'play'; i++) update(s); return mode; }, hot: p => hotspotAt(p), click: h => doHotspot(h), startNight, startMini, updateMini, advanceSay, mg: () => MG, nightWon, showEnding, openExtras, setMode: m => { mode = m; } };
 G = demoState(); renderMenu(); show('menu');
 requestAnimationFrame(frame);
 })();
