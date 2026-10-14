@@ -26,9 +26,9 @@
 }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
-body { margin: 0; background: var(--ink); color: var(--hud); font-family: var(--f-body); overflow: hidden; }
-#stage { position: fixed; inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0; display: grid; place-items: center; }
-#cv { display: block; touch-action: none; cursor: crosshair; }
+body { margin: 0; background: var(--ink); color: var(--hud); font-family: var(--f-body); overflow: hidden; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+#stage { position: fixed; inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); display: grid; place-items: center; }
+#cv { display: block; touch-action: none; cursor: crosshair; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .ov { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(5, 3, 8, .74); overflow-y: auto; z-index: 5; }
 .panel { width: 100%; max-width: 600px; display: grid; gap: 18px; padding-block: 12px; }
 h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(46px, 9vw, 92px); line-height: .92; margin: 0; color: var(--blood); letter-spacing: .02em; text-shadow: 0 0 28px rgba(179, 38, 62, .45); text-wrap: balance; }
@@ -97,11 +97,12 @@ section { display: grid; gap: 4px; }
     <h1>Las Noches de Steicy</h1>
     <p class="lede">Steicy está sola en casa. Mamá vuelve a las 6 de la mañana. Hasta entonces, la casa no duerme.</p>
     <div class="nights" id="nights"></div>
-    <div class="row"><button id="extrasBtn">Extras</button><button id="customBtn" hidden>Noche personalizada</button></div>
+    <div class="row"><button id="extrasBtn">Extras</button><button id="customBtn" hidden>Noche personalizada</button><button id="fsBtn" hidden>Pantalla completa</button></div>
     <label class="toggle" for="sustos"><input type="checkbox" id="sustos" checked> Sustos fuertes (jumpscare con grito)</label>
     <details>
       <summary>Cómo se juega</summary>
       <ul>
+        <li><b>En el celular:</b> jugá en horizontal. Arrastrá el dedo para mover la linterna (la luz sale un poco más arriba del dedo, así no la tapás). Tocá una vez para usar cosas, abrir puertas o apuntar directo. Si el celular está en silencio, puede que no se escuche nada.</li>
         <li>Moverte por la casa: hacé click en las puertas o en el mapa de arriba a la derecha.</li>
         <li>Linterna: se apunta con el mouse (o tocando). <kbd>F</kbd> la prende. Gasta pila. <kbd>R</kbd> cambia la pila.</li>
         <li><b>Cuarto:</b> la ventana se abre sola, cerrala. Debajo de la cama (<kbd>S</kbd>) hay algo: alumbrale los ojos.</li>
@@ -224,10 +225,13 @@ let ctx = cv.getContext('2d');
 function withCtx(c, fn) { const prev = ctx; ctx = c; try { fn(); } finally { ctx = prev; } }
 const dk = document.createElement('canvas'), dctx = dk.getContext('2d');
 let scale = 1, dpr = 1;
+const isTouch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+let bigUI = isTouch;
 function resize() {
   const box = $('stage');
   scale = Math.max(.05, Math.min(box.clientWidth / W, box.clientHeight / H) || 0);
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  bigUI = isTouch || W * scale < 1000;
+  dpr = Math.min(window.devicePixelRatio || 1, bigUI ? 1.5 : 2);
   cv.style.width = W * scale + 'px'; cv.style.height = H * scale + 'px';
   cv.width = Math.max(1, Math.round(W * scale * dpr)); cv.height = Math.max(1, Math.round(H * scale * dpr));
   dk.width = cv.width; dk.height = cv.height;
@@ -791,7 +795,9 @@ function placeItem(type) {
   if (k === 'cuarto.under') G.underPos = { x: rand(300, 980), y: rand(540, 660) };
 }
 function spotInfo(key) { const [r, s] = key.split('.'); return s === 'under' ? { room: r, name: 'debajo de tu cama' } : { room: r, name: SPOTS[r][s].name }; }
-function toast(text, life = 3) { if (!G) return; G.toasts.push({ text, life }); if (G.toasts.length > 3) G.toasts.shift(); }
+function toast(text, life = 3) {
+  if (!G) return;
+  if (isTouch) text = text.replace(/ ?\((?:F|S|C|R)\)/g, '').replace(/Apretá R( \(o el botón\))?/g, 'Tocá CAMBIAR PILA').replace(/Hacé click/g, 'Tocá'); G.toasts.push({ text, life }); if (G.toasts.length > 3) G.toasts.shift(); }
 function hint(key, text) { if (INTRO[key] === G.n && !G.hintsShown[key]) { G.hintsShown[key] = true; toast(text, 6); return true; } return false; }
 const flashLit = () => G.flash.on && G.flash.bat > 0;
 const hiddenIn = r => G.hidden.active && G.hidden.room === r;
@@ -1428,8 +1434,10 @@ function sparkle(x, y, t) {
   ctx.restore();
 }
 const hudFont = px => `${px}px "Special Elite", "Courier New", monospace`;
-function pill(text, x, y, px, color = '#f1e9d6', bg = 'rgba(8,5,12,.75)') {
-  ctx.font = hudFont(px); const w = ctx.measureText(text).width + px * 1.4;
+function pill(text, x, y, px, color = '#f1e9d6', bg = 'rgba(8,5,12,.75)', maxW = W - 32) {
+  if (bigUI) px = Math.round(px * 1.35);
+  ctx.font = hudFont(px); let w = ctx.measureText(text).width + px * 1.4;
+  while (w > maxW && px > 12) { px--; ctx.font = hudFont(px); w = ctx.measureText(text).width + px * 1.4; }
   x = clamp(x, w / 2 + 8, W - w / 2 - 8);
   ctx.fillStyle = bg; rrect(ctx, x - w / 2, y - px * 1.05, w, px * 1.6, 4); ctx.fill();
   ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(text, x, y);
@@ -1444,7 +1452,8 @@ function hotspotAt(p) {
   }
   return HOT[g.room].find(h => inside(p, h));
 }
-const MM = { x: 1044, y: 84, cw: 64, ch: 30, gap: 8 };
+const MM_SMALL = { x: 1044, y: 84, cw: 64, ch: 30, gap: 8, fs: 12 }, MM_BIG = { x: 930, y: 84, cw: 104, ch: 50, gap: 10, fs: 19 };
+let MM = MM_SMALL;
 function mmRect(r) { const [c, rw] = ROOMS[r].grid; return { x: MM.x + c * (MM.cw + MM.gap), y: MM.y + rw * (MM.ch + MM.gap), w: MM.cw, h: MM.ch }; }
 function mmAt(p) { for (const r in ROOMS) if (inside(p, mmRect(r))) return r; return null; }
 function drawMinimap(t) {
@@ -1457,14 +1466,14 @@ function drawMinimap(t) {
     ctx.fillStyle = here ? 'rgba(179,38,62,.9)' : roomDark(r) ? 'rgba(10,6,14,.95)' : 'rgba(40,32,50,.95)'; rrect(ctx, R.x, R.y, R.w, R.h, 3); ctx.fill();
     ctx.strokeStyle = here ? '#f1e9d6' : 'rgba(233,228,201,.4)'; ctx.lineWidth = 1.2; ctx.stroke();
     if (mon && r === g.monitor.cam) { ctx.strokeStyle = '#ffd36a'; ctx.lineWidth = 3; rrect(ctx, R.x - 2, R.y - 2, R.w + 4, R.h + 4, 4); ctx.stroke(); }
-    ctx.font = hudFont(12); ctx.textAlign = 'left'; ctx.fillStyle = '#f1e9d6'; ctx.fillText(ROOMS[r].short, R.x + 5, R.y + 19);
+    ctx.font = hudFont(MM.fs); ctx.textAlign = 'left'; ctx.fillStyle = '#f1e9d6'; ctx.fillText(ROOMS[r].short, R.x + 5, R.y + R.h / 2 + MM.fs * .35);
     let icon = '';
     if (r === 'living' && g.tele.on && telePowered()) icon = '~';
     if (r === 'bano' && g.agua.on) icon = '≈';
     if (r === 'cocina' && g.phone.ring > 0 && Math.floor(t * 4) % 2 === 0) icon = '♪';
-    if (icon) { ctx.textAlign = 'right'; ctx.font = '20px "VT323", monospace'; ctx.fillStyle = '#ffd36a'; ctx.fillText(icon, R.x + R.w - 4, R.y + 20); }
+    if (icon) { ctx.textAlign = 'right'; ctx.font = `${Math.round(MM.fs * 1.6)}px "VT323", monospace`; ctx.fillStyle = '#ffd36a'; ctx.fillText(icon, R.x + R.w - 4, R.y + MM.fs * 1.4); }
   }
-  if (mon) { ctx.font = hudFont(13); ctx.textAlign = 'left'; ctx.fillStyle = '#ffd36a'; ctx.fillText('MONITOR: ELEGÍ UNA CÁMARA', MM.x - 6, MM.y + 3 * MM.ch + 2 * MM.gap + 28); }
+  if (mon) { ctx.font = hudFont(Math.round(MM.fs * 1.05)); ctx.textAlign = 'left'; ctx.fillStyle = '#ffd36a'; ctx.fillText('MONITOR: ELEGÍ UNA CÁMARA', MM.x - 6, MM.y + 3 * MM.ch + 2 * MM.gap + MM.fs * 2.3); }
 }
 function drawAfterDark(t) {
   const g = G;
@@ -1494,7 +1503,7 @@ function drawAfterDark(t) {
     ctx.fillStyle = 'rgba(8,5,12,.75)'; ctx.fillRect(510, 576, 260, 10);
     ctx.fillStyle = '#e9e4c9'; ctx.fillRect(512, 578, 256 * k, 6);
   }
-  g.toasts.forEach((tt, i) => { ctx.save(); ctx.globalAlpha = clamp(tt.life, 0, 1); pill(tt.text, 560, 118 + i * 40, 19); ctx.restore(); });
+  g.toasts.forEach((tt, i) => { ctx.save(); ctx.globalAlpha = clamp(tt.life, 0, 1); pill(tt.text, bigUI ? 462 : 560, (bigUI ? 130 : 118) + i * (bigUI ? 52 : 40), 19, undefined, undefined, bigUI ? 880 : 900); ctx.restore(); });
   const p = .6 + .4 * Math.sin(t * 8);
   if (g.f.sombra && g.sombra.room === g.room && !(g.action && g.action.travel)) {
     const left = Math.max(0, g.d.sombraLimit - g.sombra.enc);
@@ -1512,42 +1521,47 @@ function drawAfterDark(t) {
   if (g.dark.t > 0) { ctx.save(); ctx.globalAlpha = p; pill('¡ESTÁS A OSCURAS! Cambiá la pila o andá a un lugar con luz', 640, 400, 24, '#ffd6dc', 'rgba(120,10,25,.8)'); ctx.restore(); }
 }
 function hudButtons() {
-  const g = G;
+  const g = G, big = bigUI, k = key => big ? '' : ` [${key}]`;
+  const w = big ? 252 : 204, h = big ? 84 : 52, y = H - h - (big ? 10 : 24), gap = big ? 10 : 8, right = W - (big ? 14 : 24);
+  const slot = i => right - (3 - i) * w - (2 - i) * gap;
   return [
-    { id: 'pila', x: 172, y: 648, w: 196, h: 48, label: 'CAMBIAR PILA [R]', show: g.flash.pilas > 0 },
-    { id: 'monitor', x: 640, y: 644, w: 214, h: 52, label: g.monitor.open ? 'CERRAR MONITOR [C]' : 'MONITOR [C]', show: true, active: g.monitor.open },
-    { id: 'flash', x: 862, y: 644, w: 196, h: 52, label: g.flash.on ? 'LINTERNA: ON [F]' : 'LINTERNA: OFF [F]', show: !g.monitor.open, active: g.flash.on },
-    { id: 'under', x: 1068, y: 644, w: 188, h: 52, label: g.view === 'room' ? 'BAJO LA CAMA [S]' : 'VOLVER [S]', show: g.room === 'cuarto' && !g.monitor.open, active: g.view === 'under' }
+    { id: 'pause', x: big ? 390 : 300, y: big ? 10 : 18, w: big ? 90 : 64, h: big ? 70 : 44, label: 'II', show: true, fs: big ? 30 : 20 },
+    { id: 'pila', x: big ? 196 : 172, y: big ? y : 648, w: big ? 236 : 196, h: big ? h : 48, label: 'CAMBIAR PILA' + k('R'), show: g.flash.pilas > 0 },
+    { id: 'monitor', x: slot(0), y, w, h, label: g.monitor.open ? 'CERRAR MONITOR' + k('C') : 'MONITOR' + k('C'), show: true, active: g.monitor.open },
+    { id: 'flash', x: slot(1), y, w, h, label: (g.flash.on ? 'LINTERNA: ON' : 'LINTERNA: OFF') + k('F'), show: !g.monitor.open, active: g.flash.on },
+    { id: 'under', x: slot(2), y, w, h, label: (g.view === 'room' ? 'BAJO LA CAMA' : 'VOLVER') + k('S'), show: g.room === 'cuarto' && !g.monitor.open, active: g.view === 'under' }
   ];
 }
 function drawHUD(t) {
-  const g = G;
-  ctx.textAlign = 'left'; ctx.font = hudFont(26); ctx.fillStyle = 'rgba(241,233,214,.92)';
-  ctx.fillText(g.custom ? 'PERSONALIZADA' : g.n === 6 ? 'PESADILLA' : `NOCHE ${g.n}`, 28, 50);
-  ctx.font = hudFont(16); ctx.fillStyle = 'rgba(241,233,214,.65)';
-  ctx.fillText(g.monitor.open ? `Mirando el monitor (estás en: ${ROOMS[g.room].short})` : g.view === 'under' ? 'Debajo de la cama' : ROOMS[g.room].name, 28, 76);
+  const g = G, big = bigUI;
+  MM = big ? MM_BIG : MM_SMALL;
+  ctx.textAlign = 'left'; ctx.font = hudFont(big ? 32 : 26); ctx.fillStyle = 'rgba(241,233,214,.92)';
+  ctx.fillText(g.custom ? 'PERSONAL.' : g.n === 6 ? 'PESADILLA' : `NOCHE ${g.n}`, 28, big ? 52 : 50);
+  ctx.font = hudFont(big ? 21 : 16); ctx.fillStyle = 'rgba(241,233,214,.7)';
+  ctx.fillText(g.monitor.open ? `Monitor (estás en: ${ROOMS[g.room].short})` : g.view === 'under' ? 'Debajo de la cama' : ROOMS[g.room].name, 28, big ? 84 : 76);
   const hr = Math.min(5, Math.floor(g.t / g.hourLen));
-  ctx.textAlign = 'right'; ctx.font = '60px "VT323", "Courier New", monospace'; ctx.fillStyle = '#e9e4c9';
+  ctx.textAlign = 'right'; ctx.font = `${big ? 64 : 60}px "VT323", "Courier New", monospace`; ctx.fillStyle = '#e9e4c9';
   ctx.fillText(`${hr === 0 ? 12 : hr} AM`, W - 28, 62);
   drawMinimap(t);
-  const bx = 28, by = 652, bw = 120, bh = 40, b = g.flash.bat;
-  ctx.textAlign = 'left'; ctx.font = hudFont(14); ctx.fillStyle = 'rgba(241,233,214,.8)';
+  const bw = big ? 150 : 120, bh = big ? 56 : 40, bx = 28, by = big ? H - bh - 24 : 652, b = g.flash.bat;
+  ctx.textAlign = 'left'; ctx.font = hudFont(big ? 18 : 14); ctx.fillStyle = 'rgba(241,233,214,.8)';
   let inv = `PILAS: ${g.flash.pilas}`;
   if (g.f.fusibles) inv += `   FUSIBLES: ${g.flash.fusibles}`;
   if (!g.custom && pagesFound().includes(g.n - 1)) inv += '   PÁGINA ✓';
   ctx.fillText(inv, bx, by - 10);
   ctx.strokeStyle = '#e9e4c9'; ctx.lineWidth = 2; rrect(ctx, bx, by, bw, bh, 6); ctx.stroke();
-  ctx.fillStyle = '#e9e4c9'; ctx.fillRect(bx + bw, by + 12, 6, 16);
+  ctx.fillStyle = '#e9e4c9'; ctx.fillRect(bx + bw, by + bh * .3, 6, bh * .4);
   const blink = b < 15 && Math.floor(T * 4) % 2 === 0;
   ctx.fillStyle = b > 50 ? '#7bc47f' : b > 20 ? '#e3c25a' : '#d0454c';
   if (!blink) ctx.fillRect(bx + 4, by + 4, (bw - 8) * b / 100, bh - 8);
-  ctx.textAlign = 'center'; ctx.font = '28px "VT323", "Courier New", monospace'; ctx.fillStyle = '#f1e9d6';
-  ctx.fillText(`${Math.ceil(b)}%`, bx + bw / 2, by + 29);
+  ctx.textAlign = 'center'; ctx.font = `${big ? 36 : 28}px "VT323", "Courier New", monospace`; ctx.fillStyle = '#f1e9d6';
+  ctx.fillText(`${Math.ceil(b)}%`, bx + bw / 2, by + bh / 2 + (big ? 11 : 9));
   for (const bt of hudButtons()) {
     if (!bt.show) continue;
     ctx.fillStyle = bt.active ? 'rgba(179,38,62,.45)' : 'rgba(10,6,14,.72)'; rrect(ctx, bt.x, bt.y, bt.w, bt.h, 4); ctx.fill();
     ctx.strokeStyle = bt.active ? '#d0334e' : 'rgba(233,228,201,.6)'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = '#f1e9d6'; ctx.font = hudFont(16); ctx.textAlign = 'center'; ctx.fillText(bt.label, bt.x + bt.w / 2, bt.y + bt.h / 2 + 6);
+    const fs = bt.fs || (big ? 22 : 16);
+    ctx.fillStyle = '#f1e9d6'; ctx.font = hudFont(fs); ctx.textAlign = 'center'; ctx.fillText(bt.label, bt.x + bt.w / 2, bt.y + bt.h / 2 + fs * .35);
   }
 }
 function drawDoll(x, y, s, t) {
@@ -1860,9 +1874,15 @@ function startNight(n, skipNote) {
   $('noteText').innerHTML = NOTES[n]; mode = 'note'; show('note'); setLoop(ambGain, .5); setLoop(windGain, .02);
   $('noteGo').focus();
 }
+function goFullscreen() {
+  const el = document.documentElement;
+  if (document.fullscreenElement || !el.requestFullscreen) return;
+  el.requestFullscreen({ navigationUI: 'hide' }).then(() => { try { screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => {});
+}
 function beginPlay() {
   show(null); mode = 'play'; setLoop(ambGain, 1);
-  if (G.n === 1) { toast('Mové el mouse para apuntar la linterna. F la prende.', 5); setTimeout(() => G && mode === 'play' && hint('mapa', 'Para ir a otra habitación, tocá una puerta o el mapa de arriba a la derecha. C abre el monitor.'), 5500); }
+  if (isTouch) goFullscreen();
+  if (G.n === 1) { toast(isTouch ? 'Arrastrá el dedo para mover la linterna. Tocá LINTERNA para prenderla.' : 'Mové el mouse para apuntar la linterna. F la prende.', 6); setTimeout(() => G && mode === 'play' && hint('mapa', 'Para ir a otra habitación, tocá una puerta o el mapa de arriba a la derecha. C abre el monitor.'), 5500); }
 }
 function silenceLoops() { [windGain, waterGain, tvGain, humGain].forEach(n => setLoop(n, 0)); }
 function die(cause) {
@@ -1988,6 +2008,7 @@ $('customBack').addEventListener('click', toMenu);
 $('customBtn').addEventListener('click', () => { renderCustom(); show('custom'); });
 $('extrasBtn').addEventListener('click', () => { G = demoState(); openExtras(); });
 $('extrasBack').addEventListener('click', toMenu);
+if (document.fullscreenEnabled && isTouch) { $('fsBtn').hidden = false; $('fsBtn').addEventListener('click', goFullscreen); }
 $('endGo').addEventListener('click', () => { const f = endingThen; endingThen = null; if (f) f(); else toMenu(); });
 $('choiceCut').addEventListener('click', () => { show(null); mode = 'play'; setLoop(ambGain, 1); vozEffect(); });
 $('choiceYes').addEventListener('click', () => { unlock('secreto'); sfx.whisper(); silenceLoops(); setLoop(ambGain, .2); showEnding('secreto', toMenu); });
@@ -2005,6 +2026,7 @@ addEventListener('blur', () => keysDown.clear());
 
 function toGame(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
 cv.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch') return;
   pointer = toGame(e);
   if (mode === 'play') { G.aim = pointer; cv.style.cursor = mmAt(pointer) || hotspotAt(pointer) || hudButtons().some(b => b.show && inside(pointer, b)) ? 'pointer' : 'crosshair'; }
 });
@@ -2020,20 +2042,45 @@ cv.addEventListener('pointerdown', e => {
   }
   if (mode !== 'play') return;
   const b = hudButtons().find(b => b.show && inside(p, b));
-  if (b) { ({ flash: toggleFlash, under: toggleUnder, monitor: toggleMonitor, pila: changePila })[b.id](); return; }
+  if (b) { ({ flash: toggleFlash, under: toggleUnder, monitor: toggleMonitor, pila: changePila, pause })[b.id](); return; }
   const m = mmAt(p);
   if (m) {
     if (G.monitor.open) { G.monitor.cam = m; G.monitor.switchT = .25; sfx.static(); return; }
     return travelTo(m);
   }
-  G.aim = p;
+  if (e.pointerType === 'touch') {
+    // con el dedo: arrastrar mueve la linterna, un toque corto hace la acción
+    touch = { id: e.pointerId, x0: p.x, y0: p.y, t0: performance.now(), moved: false };
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    return;
+  }
+  tapWorld(p);
+});
+const TOUCH_LIFT = 110;
+let touch = null;
+function tapWorld(p) {
+  G.aim = { x: p.x, y: p.y };
   const h = hotspotAt(p); if (!h) return;
   if (h.id === 'underItem') {
     if (busy()) return;
     return startAction('Agarrando...', 1.2, () => { const it = G.items['cuarto.under']; if (it) { delete G.items['cuarto.under']; giveItem(it); } });
   }
   doHotspot(h);
+}
+cv.addEventListener('pointermove', e => {
+  if (!touch || e.pointerId !== touch.id || mode !== 'play') return;
+  const p = toGame(e);
+  if (!touch.moved && Math.hypot(p.x - touch.x0, p.y - touch.y0) > 22) touch.moved = true;
+  if (touch.moved) { G.aim = { x: p.x, y: Math.max(0, p.y - TOUCH_LIFT) }; pointer = null; }
 });
+cv.addEventListener('pointerup', e => {
+  if (!touch || e.pointerId !== touch.id) return;
+  const t = touch; touch = null;
+  if (mode === 'play' && !t.moved && performance.now() - t.t0 < 500) tapWorld({ x: t.x0, y: t.y0 });
+  pointer = null;
+});
+cv.addEventListener('pointercancel', () => { touch = null; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keyup', e => keysDown.delete(e.key.toLowerCase()));
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
